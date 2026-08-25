@@ -1,0 +1,254 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Sidebar } from "./Sidebar";
+import { Composer } from "./Composer";
+import { MessageBubble } from "./MessageBubble";
+import { ContextGauge } from "./ContextGauge";
+import { FilamentMark } from "./FilamentMark";
+import { MenuIcon } from "./Icons";
+import { estimateTokens } from "@/lib/estimateTokens";
+import type { Attachment, ChatMessage, Conversation } from "@/lib/types";
+
+const STORAGE_KEY = "tungston:conversations";
+const uid = () => (crypto as any).randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+
+function emptyConversation(): Conversation {
+  const now = Date.now();
+  return { id: uid(), title: "New chat", messages: [], createdAt: now, updatedAt: now };
+}
+
+export default function ChatApp() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [staged, setStaged] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [config, setConfig] = useState({ provider: "gemini", contextWindowTokens: 1_048_576 });
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted conversations + server config once on mount.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed: Conversation[] = raw ? JSON.parse(raw) : [];
+      if (parsed.length) {
+        setConversations(parsed);
+        setActiveId(parsed[0].id);
+      } else {
+        const c = emptyConversation();
+        setConversations([c]);
+        setActiveId(c.id);
+      }
+    } catch {
+      const c = emptyConversation();
+      setConversations([c]);
+      setActiveId(c.id);
+    }
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then(setConfig)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (conversations.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+  }, [conversations]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [conversations, activeId]);
+
+  const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [conversations, activeId]);
+
+  const contextUsed = useMemo(
+    () => (active ? active.messages.reduce((sum, m) => sum + estimateTokens(m.content), 0) : 0),
+    [active]
+  );
+
+  function updateConversation(id: string, fn: (c: Conversation) => Conversation) {
+    setConversations((prev) => prev.map((c) => (c.id === id ? fn(c) : c)));
+  }
+
+  function newConversation() {
+    const c = emptyConversation();
+    setConversations((prev) => [c, ...prev]);
+    setActiveId(c.id);
+  }
+
+  function deleteConversation(id: string) {
+    setConversations((prev) => {
+      const next = prev.filter((c) => c.id !== id);
+      if (id === activeId) setActiveId(next[0]?.id ?? null);
+      return next.length ? next : [emptyConversation()];
+    });
+  }
+
+  async function handleAttach(files: FileList) {
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: form });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Upload failed");
+        setStaged((prev) => [
+          ...prev,
+          { id: uid(), name: json.name, mimeType: json.mimeType, fileUri: json.fileUri, dataUrl: json.dataUrl, sizeBytes: json.sizeBytes },
+        ]);
+      }
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function removeStaged(id: string) {
+    setStaged((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  async function sendMessage(text: string) {
+    if (!active) return;
+    const convoId = active.id;
+    const userMsg: ChatMessage = { id: uid(), role: "user", content: text, attachments: staged, createdAt: Date.now() };
+    const assistantMsg: ChatMessage = { id: uid(), role: "assistant", content: "", pending: true, createdAt: Date.now() };
+
+    const isFirstMessage = active.messages.length === 0;
+    updateConversation(convoId, (c) => ({
+      ...c,
+      title: isFirstMessage ? text.slice(0, 40) : c.title,
+      messages: [...c.messages, userMsg, assistantMsg],
+      updatedAt: Date.now(),
+    }));
+    setStaged([]);
+    setStreaming(true);
+
+    try {
+      const history = [...active.messages, userMsg].map((m) => ({
+        role: m.role,
+        content: m.content,
+        attachments: m.attachments?.map((a) => ({ mimeType: a.mimeType, fileUri: a.fileUri, dataUrl: a.dataUrl })),
+      }));
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: history }),
+      });
+      if (!res.body) throw new Error("No response stream");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        updateConversation(convoId, (c) => ({
+          ...c,
+          messages: c.messages.map((m) => (m.id === assistantMsg.id ? { ...m, content: acc } : m)),
+        }));
+      }
+      updateConversation(convoId, (c) => ({
+        ...c,
+        messages: c.messages.map((m) => (m.id === assistantMsg.id ? { ...m, pending: false } : m)),
+      }));
+    } catch (err) {
+      updateConversation(convoId, (c) => ({
+        ...c,
+        messages: c.messages.map((m) =>
+          m.id === assistantMsg.id ? { ...m, pending: false, content: `Something went wrong: ${(err as Error).message}` } : m
+        ),
+      }));
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  async function generateImage(prompt: string) {
+    if (!active) return;
+    const convoId = active.id;
+    const userMsg: ChatMessage = { id: uid(), role: "user", content: prompt, createdAt: Date.now() };
+    const assistantMsg: ChatMessage = { id: uid(), role: "assistant", content: "", pending: true, createdAt: Date.now() };
+    updateConversation(convoId, (c) => ({ ...c, messages: [...c.messages, userMsg, assistantMsg], updatedAt: Date.now() }));
+    setStreaming(true);
+
+    try {
+      const res = await fetch("/api/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Image generation failed");
+      updateConversation(convoId, (c) => ({
+        ...c,
+        messages: c.messages.map((m) => (m.id === assistantMsg.id ? { ...m, pending: false, images: json.images } : m)),
+      }));
+    } catch (err) {
+      updateConversation(convoId, (c) => ({
+        ...c,
+        messages: c.messages.map((m) =>
+          m.id === assistantMsg.id ? { ...m, pending: false, content: `Couldn't generate that: ${(err as Error).message}` } : m
+        ),
+      }));
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-base text-ink">
+      <Sidebar
+        conversations={conversations}
+        activeId={activeId}
+        onSelect={setActiveId}
+        onNew={newConversation}
+        onDelete={deleteConversation}
+        open={sidebarOpen}
+      />
+
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-black/30 px-4 py-3 md:px-8">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-label="Toggle sidebar"
+              className="grid h-8 w-8 place-items-center rounded-lg text-muted shadow-raised-sm active:shadow-pressed-sm"
+            >
+              <MenuIcon size={16} />
+            </button>
+            <span className="font-mono text-[11px] uppercase tracking-wider text-muted">{config.provider}</span>
+          </div>
+          <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
+        </header>
+
+        <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto px-4 py-6 md:px-8">
+          {!active?.messages.length && (
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted">
+              <FilamentMark size={40} />
+              <p className="font-display text-lg text-ink">Tungston AI</p>
+              <p className="max-w-xs text-sm">Built to run long. Ask a question, drop in a file, or generate an image.</p>
+            </div>
+          )}
+          {active?.messages.map((m) => (
+            <MessageBubble key={m.id} message={m} />
+          ))}
+        </div>
+
+        <Composer
+          onSend={sendMessage}
+          onGenerateImage={generateImage}
+          onAttach={handleAttach}
+          staged={staged}
+          onRemoveStaged={removeStaged}
+          busy={streaming}
+          uploading={uploading}
+        />
+      </main>
+    </div>
+  );
+}
