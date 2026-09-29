@@ -212,26 +212,28 @@ export default function ChatApp() {
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-black/30 px-4 py-3 md:px-8">
+        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-4 py-3 md:px-8">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle sidebar"
-              className="grid h-8 w-8 place-items-center rounded-lg text-muted shadow-raised-sm active:shadow-pressed-sm"
+              className="grid h-9 w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
             >
               <MenuIcon size={16} />
             </button>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-muted">{config.provider}</span>
+            <span className="border-2 border-line bg-ink px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-line">{config.provider}</span>
           </div>
           <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
         </header>
 
         <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto px-4 py-6 md:px-8">
           {!active?.messages.length && (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted">
-              <FilamentMark size={40} />
-              <p className="font-display text-lg text-ink">Tungston AI</p>
-              <p className="max-w-xs text-sm">Built to run long. Ask a question, drop in a file, or generate an image.</p>
+            <div className="flex h-full items-center justify-center">
+              <div className="flex max-w-sm flex-col items-center gap-4 border-2 border-line bg-surface p-8 text-center shadow-hard">
+                <FilamentMark size={56} />
+                <p className="font-display text-3xl uppercase leading-none text-ink">Tungston AI</p>
+                <p className="text-sm text-muted">Built to run long. Ask a question, drop in a file, or generate an image.</p>
+              </div>
             </div>
           )}
           {active?.messages.map((m) => (

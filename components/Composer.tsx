@@ -34,12 +34,12 @@ export function Composer({
   };
 
   return (
-    <div className="border-t border-black/30 bg-base px-4 pb-5 pt-3 md:px-8">
+    <div className="border-t-2 border-line bg-base px-4 pb-5 pt-4 md:px-8">
       {!!staged.length && (
         <div className="mb-2 flex flex-wrap gap-2">
           {staged.map((a) => (
-            <div key={a.id} className="flex items-center gap-2 rounded-lg bg-surface px-2.5 py-1.5 text-xs shadow-raised-sm">
-              <span className="max-w-[9rem] truncate text-muted">{a.name}</span>
+            <div key={a.id} className="flex items-center gap-2 border-2 border-line bg-surface px-2.5 py-1.5 text-xs shadow-hard-sm">
+              <span className="max-w-[9rem] truncate text-ink">{a.name}</span>
               <button onClick={() => onRemoveStaged(a.id)} className="text-muted hover:text-danger">
                 <CloseIcon size={11} />
               </button>
@@ -48,7 +48,7 @@ export function Composer({
         </div>
       )}
 
-      <div className="flex items-end gap-2 rounded-2xl bg-surface p-2 shadow-pressed">
+      <div className="flex items-end gap-2 border-2 border-line bg-surface p-2 shadow-hard">
         <input
           ref={fileInputRef}
           type="file"
@@ -61,7 +61,7 @@ export function Composer({
           disabled={uploading}
           title="Attach a file"
           aria-label="Attach a file"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-muted shadow-raised-sm transition hover:text-ink active:shadow-pressed-sm disabled:opacity-40"
+          className="grid h-10 w-10 shrink-0 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line disabled:opacity-40"
         >
           <AttachIcon />
         </button>
@@ -70,8 +70,8 @@ export function Composer({
           onClick={() => setImageMode((v) => !v)}
           title="Generate an image instead of chatting"
           aria-pressed={imageMode}
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl shadow-raised-sm transition active:shadow-pressed-sm ${
-            imageMode ? "text-accent shadow-glow" : "text-muted hover:text-ink"
+          className={`grid h-10 w-10 shrink-0 place-items-center border-2 border-line ${
+            imageMode ? "bg-accent text-line" : "bg-surface2 text-ink hover:bg-accent hover:text-line"
           }`}
         >
           <ImageIcon />
@@ -88,14 +88,14 @@ export function Composer({
           }}
           rows={1}
           placeholder={imageMode ? "Describe the image to generate…" : "Message Tungston AI…"}
-          className="max-h-40 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-2 text-[15px] text-ink placeholder:text-muted"
+          className="max-h-40 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-2 text-[15px] text-ink placeholder:text-muted font-mono"
         />
 
         <button
           onClick={submit}
           disabled={busy || !text.trim()}
           aria-label="Send message"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface text-accent shadow-raised-sm transition enabled:hover:shadow-glow active:shadow-pressed-sm disabled:opacity-30"
+          className="grid h-10 w-10 shrink-0 place-items-center border-2 border-line bg-accent text-line enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] disabled:opacity-30"
         >
           <SendIcon />
         </button>

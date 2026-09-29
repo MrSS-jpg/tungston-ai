@@ -7,14 +7,13 @@ export function FilamentMark({ active = false, size = 28 }: { active?: boolean; 
       className={active ? "animate-heat" : ""}
       style={{ filter: active ? "drop-shadow(0 0 6px rgba(255,168,92,0.6))" : "none" }}
     >
-      <rect x="4" y="4" width="32" height="32" rx="9" fill="#23262B" />
-      <path
-        d="M13 12 v16 M13 12 q7 0 7 4 t-7 4 M20 20 q7 0 7 4 t-7 4"
-        fill="none"
-        stroke={active ? "#FFA85C" : "#8B8E94"}
-        strokeWidth="2.1"
-        strokeLinecap="round"
-      />
+      <rect x="3" y="3" width="34" height="34" fill={active ? "#FFA85C" : "#3A3F45"} stroke="#0B0C0D" strokeWidth="3" />
+      <text x="6" y="12" fontSize="7" fontWeight="700" fill={active ? "#0B0C0D" : "#A0A3A9"} fontFamily="var(--font-mono), monospace">
+        74
+      </text>
+      <text x="20" y="31" textAnchor="middle" fontSize="20" fill={active ? "#0B0C0D" : "#F2EFE6"} fontFamily="var(--font-display), sans-serif">
+        W
+      </text>
     </svg>
   );
 }
