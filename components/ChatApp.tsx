@@ -230,7 +230,7 @@ export default function ChatApp() {
             >
               <MenuIcon size={16} />
             </button>
-            <span className="border-2 border-line bg-ink px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-line">{config.provider}</span>
+            <span className="border-2 border-line bg-ink px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-base">{config.provider}</span>
           </div>
           <div className="flex items-center gap-4">
             <button

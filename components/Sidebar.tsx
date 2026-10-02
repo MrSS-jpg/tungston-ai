@@ -40,7 +40,7 @@ export function Sidebar({
               onClick={() => onSelect(c.id)}
               className={`w-full truncate border-2 px-3 py-2 pr-8 text-left font-mono text-sm ${
                 c.id === activeId
-                  ? "border-line bg-ink font-bold text-line shadow-hard-sm"
+                  ? "border-line bg-ink font-bold text-base shadow-hard-sm"
                   : "border-transparent text-muted hover:border-line hover:bg-surface2 hover:text-ink"
               }`}
             >
@@ -50,7 +50,7 @@ export function Sidebar({
               onClick={() => onDelete(c.id)}
               aria-label="Delete conversation"
               className={`absolute right-1.5 top-2.5 hidden p-1 group-hover:block ${
-                c.id === activeId ? "text-line hover:text-danger" : "text-muted hover:text-danger"
+                c.id === activeId ? "text-base hover:text-danger" : "text-muted hover:text-danger"
               }`}
             >
               <CloseIcon size={11} />
