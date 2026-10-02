@@ -8,7 +8,8 @@ export type WireMessage = {
   attachments?: { mimeType: string; fileUri?: string; dataUrl?: string }[];
 };
 
-const PROVIDER = (process.env.AI_PROVIDER || "nara").toLowerCase();
+let PROVIDER = (process.env.AI_PROVIDER || "nara").toLowerCase();
+if (PROVIDER === "gemini") PROVIDER = "nara";
 const encoder = new TextEncoder();
 
 function textStream(pull: (controller: ReadableStreamDefaultController<Uint8Array>) => Promise<void>) {
