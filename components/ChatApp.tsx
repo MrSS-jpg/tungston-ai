@@ -6,7 +6,7 @@ import { Composer } from "./Composer";
 import { MessageBubble } from "./MessageBubble";
 import { ContextGauge } from "./ContextGauge";
 import { FilamentMark } from "./FilamentMark";
-import { MenuIcon } from "./Icons";
+import { MenuIcon, SunIcon, MoonIcon } from "./Icons";
 import { estimateTokens } from "@/lib/estimateTokens";
 import type { Attachment, ChatMessage, Conversation } from "@/lib/types";
 
@@ -25,7 +25,16 @@ export default function ChatApp() {
   const [uploading, setUploading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [config, setConfig] = useState({ provider: "gemini", contextWindowTokens: 1_048_576 });
+  const [isLightMode, setIsLightMode] = useState(false);
+
+  useEffect(() => {
+    if (isLightMode) {
+      document.documentElement.classList.add("light");
+    } else {
+      document.documentElement.classList.remove("light");
+    }
+  }, [isLightMode]);
+  const [config, setConfig] = useState({ provider: "nara", contextWindowTokens: 128_000 });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load persisted conversations + server config once on mount.
@@ -223,7 +232,16 @@ export default function ChatApp() {
             </button>
             <span className="border-2 border-line bg-ink px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-line">{config.provider}</span>
           </div>
-          <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsLightMode(!isLightMode)}
+              aria-label="Toggle theme"
+              className="grid h-9 w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
+            >
+              {isLightMode ? <MoonIcon size={16} /> : <SunIcon size={16} />}
+            </button>
+            <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
+          </div>
         </header>
 
         <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto px-4 py-6 md:px-8">

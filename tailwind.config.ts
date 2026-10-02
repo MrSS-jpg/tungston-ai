@@ -5,14 +5,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        base: "#24272B",
-        surface: "#2E3237",
-        surface2: "#3A3F45",
-        ink: "#F2EFE6",
-        muted: "#A0A3A9",
-        accent: "#FFA85C",
-        line: "#0B0C0D",
-        danger: "#FF6B5A",
+        base: "var(--color-base)",
+        surface: "var(--color-surface)",
+        surface2: "var(--color-surface2)",
+        ink: "var(--color-ink)",
+        muted: "var(--color-muted)",
+        accent: "var(--color-accent)",
+        line: "var(--color-line)",
+        danger: "var(--color-danger)",
       },
       fontFamily: {
         display: ["var(--font-display)", "sans-serif"],
@@ -30,9 +30,9 @@ const config: Config = {
         full: "0",
       },
       boxShadow: {
-        hard: "6px 6px 0 #0B0C0D",
-        "hard-sm": "3px 3px 0 #0B0C0D",
-        glow: "0 0 18px rgba(255,168,92,0.45)",
+        hard: "6px 6px 0 var(--color-line)",
+        "hard-sm": "3px 3px 0 var(--color-line)",
+        glow: "0 0 18px var(--color-accent)",
       },
       keyframes: {
         heat: {
