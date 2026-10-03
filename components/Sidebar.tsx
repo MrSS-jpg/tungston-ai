@@ -24,7 +24,7 @@ export function Sidebar({
       {/* Mobile Backdrop Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 z-40 bg-black/80 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -73,7 +73,7 @@ export function Sidebar({
                 }}
                 className={`w-full truncate border-2 px-3 py-2 pr-8 text-left font-mono text-sm ${
                   c.id === activeId
-                    ? "border-line bg-ink font-bold text-base shadow-hard-sm"
+                    ? "border-line bg-ink font-bold text-[var(--color-base)] shadow-hard-sm"
                     : "border-transparent text-muted hover:border-line hover:bg-surface2 hover:text-ink"
                 }`}
               >
@@ -86,7 +86,7 @@ export function Sidebar({
                 }}
                 aria-label="Delete conversation"
                 className={`absolute right-1.5 top-2.5 p-1 ${
-                  c.id === activeId ? "text-base hover:text-danger" : "text-muted hover:text-danger"
+                  c.id === activeId ? "text-[var(--color-base)] hover:text-danger" : "text-muted hover:text-danger"
                 } md:hidden md:group-hover:block`}
               >
                 <CloseIcon size={11} />

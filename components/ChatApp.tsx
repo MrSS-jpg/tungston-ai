@@ -239,7 +239,7 @@ export default function ChatApp() {
             >
               <MenuIcon size={16} />
             </button>
-            <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-base">
+            <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[var(--color-base)]">
               {config.provider}
             </span>
           </div>
