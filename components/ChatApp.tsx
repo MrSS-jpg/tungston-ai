@@ -24,8 +24,15 @@ export default function ChatApp() {
   const [staged, setStaged] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [streaming, setStreaming] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLightMode, setIsLightMode] = useState(false);
+
+  // Set initial sidebar open state based on screen size
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth >= 768) {
+      setSidebarOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (isLightMode) {
@@ -34,6 +41,7 @@ export default function ChatApp() {
       document.documentElement.classList.remove("light");
     }
   }, [isLightMode]);
+
   const [config, setConfig] = useState({ provider: "nara", contextWindowTokens: 128_000 });
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -210,7 +218,7 @@ export default function ChatApp() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-base text-ink">
+    <div className="flex h-screen overflow-hidden bg-base text-ink relative">
       <Sidebar
         conversations={conversations}
         activeId={activeId}
@@ -218,39 +226,42 @@ export default function ChatApp() {
         onNew={newConversation}
         onDelete={deleteConversation}
         open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-4 py-3 md:px-8">
-          <div className="flex items-center gap-3">
+        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-3 py-2.5 md:px-8 md:py-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle sidebar"
-              className="grid h-9 w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
+              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
             >
               <MenuIcon size={16} />
             </button>
-            <span className="border-2 border-line bg-ink px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-base">{config.provider}</span>
+            <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-base">
+              {config.provider}
+            </span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <button
               onClick={() => setIsLightMode(!isLightMode)}
               aria-label="Toggle theme"
-              className="grid h-9 w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
+              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
             >
-              {isLightMode ? <MoonIcon size={16} /> : <SunIcon size={16} />}
+              {isLightMode ? <MoonIcon size={15} /> : <SunIcon size={15} />}
             </button>
             <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
           </div>
         </header>
 
-        <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto px-4 py-6 md:px-8">
+        <div ref={scrollRef} className="flex-1 space-y-4 md:space-y-5 overflow-y-auto px-3 py-4 md:px-8 md:py-6">
           {!active?.messages.length && (
-            <div className="flex h-full items-center justify-center">
-              <div className="flex max-w-sm flex-col items-center gap-4 border-2 border-line bg-surface p-8 text-center shadow-hard">
-                <FilamentMark size={56} />
-                <p className="font-display text-3xl uppercase leading-none text-ink">Tungston AI</p>
-                <p className="text-sm text-muted">Built to run long. Ask a question, drop in a file, or generate an image.</p>
+            <div className="flex h-full items-center justify-center p-4">
+              <div className="flex max-w-sm flex-col items-center gap-4 border-2 border-line bg-surface p-6 md:p-8 text-center shadow-hard w-full">
+                <FilamentMark size={52} />
+                <p className="font-display text-2xl md:text-3xl uppercase leading-none text-ink">Tungston AI</p>
+                <p className="text-xs md:text-sm text-muted">Built to run long. Ask a question, drop in a file, or generate an image.</p>
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo_Black, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -10,10 +10,16 @@ export const metadata: Metadata = {
   description: "A durable, long-context AI chat assistant.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${mono.variable}`} style={{ ["--font-body" as string]: "var(--font-mono)" }}>
-      <body className="font-body">{children}</body>
+      <body className="font-body antialiased">{children}</body>
     </html>
   );
 }

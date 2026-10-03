@@ -8,11 +8,11 @@ export function ContextGauge({ used, max }: { used: number; max: number }) {
   const pct = Math.min(1, max ? used / max : 0);
 
   return (
-    <div className="flex items-center gap-3 border-2 border-line bg-surface px-3 py-1.5 shadow-hard-sm" title="Context window in use">
-      <div className="h-3 w-20 border-2 border-line bg-base md:w-32">
+    <div className="flex items-center gap-2 border-2 border-line bg-surface px-2 py-1 md:gap-3 md:px-3 md:py-1.5 shadow-hard-sm" title="Context window in use">
+      <div className="hidden h-3 w-16 border-2 border-line bg-base sm:block md:w-28">
         <div className="h-full bg-accent" style={{ width: `${Math.max(pct * 100, used > 0 ? 2 : 0)}%` }} />
       </div>
-      <span className="font-mono text-[11px] font-bold uppercase text-ink">
+      <span className="font-mono text-[10px] md:text-[11px] font-bold uppercase text-ink whitespace-nowrap">
         {formatTokens(used)} <span className="text-muted">/</span> {formatTokens(max)}
       </span>
     </div>
