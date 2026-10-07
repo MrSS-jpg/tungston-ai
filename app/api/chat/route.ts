@@ -1,7 +1,7 @@
 import { streamCompletion, type WireMessage } from "@/lib/providers";
 import { checkChatLimit, getClientIp } from "@/lib/ratelimit";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 // Keeps request payloads (and provider token bills) bounded on long chats.
 // Gemini's 1M window rarely needs this, but it protects smaller-context providers.
