@@ -115,19 +115,25 @@ async function streamOpenAICompatible(
       const errText = await res.text();
       lastErr = `${PROVIDER} error ${res.status}: ${errText}`;
 
-      // If model not found or forbidden on this specific model ID, attempt next candidate
-      if (
+      // Catch model 404 or 400 decommissioned/unavailable errors and seamlessly try next model
+      const isModelError =
         res.status === 404 ||
-        errText.includes("model_not_found") ||
-        errText.includes("does not exist or you do not have access")
-      ) {
+        (res.status === 400 && (
+          errText.includes("model_decommissioned") ||
+          errText.includes("decommissioned") ||
+          errText.includes("model_not_found") ||
+          errText.includes("does not exist") ||
+          errText.includes("no longer supported")
+        ));
+
+      if (isModelError) {
         continue;
       }
 
       // For hard auth or quota errors (401, 429), fail immediately
       throw new Error(lastErr);
     } catch (e: any) {
-      if (e.message && e.message.includes("404")) continue;
+      if (e.message && (e.message.includes("404") || e.message.includes("decommissioned"))) continue;
       throw e;
     }
   }
@@ -152,10 +158,10 @@ export async function streamCompletion(
 
   switch (PROVIDER) {
     case "groq": {
-      // Model priority lists for resilient fallback
-      // Common Groq IDs: llama-3.3-70b-versatile, llama3-8b-8192, llama-3.1-8b-instant, gemma2-9b-it
+      // Production-ready Groq model list:
+      // llama-3.3-70b-versatile is the guaranteed active flagship.
+      // llama-3.1-8b-instant, gemma2-9b-it, qwen-2.5-32b as robust alternatives.
       const guestFallbacks = [
-        "llama3-8b-8192",
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
         "gemma2-9b-it",
@@ -164,10 +170,10 @@ export async function streamCompletion(
         "llama-3.3-70b-versatile",
         "qwen-2.5-32b",
         "openai/gpt-oss-20b",
-        "llama3-70b-8192",
+        "gemma2-9b-it",
       ];
 
-      const primaryGuest = process.env.GROQ_GUEST_MODEL || process.env.GROQ_MODEL || "llama3-8b-8192";
+      const primaryGuest = process.env.GROQ_GUEST_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
       const primaryAuth = process.env.GROQ_AUTH_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 
       const chosenModel = options?.modelOverride || (isAuth ? primaryAuth : primaryGuest);
