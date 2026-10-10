@@ -27,4 +27,20 @@ export interface Conversation {
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
+  projectId?: string | null;
+}
+
+export interface ProjectFile {
+  id: string;
+  name: string;
+  content: string;
+  sizeBytes: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  files: ProjectFile[]; // max 5 files (.md and .txt)
+  createdAt: number;
 }

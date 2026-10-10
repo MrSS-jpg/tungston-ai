@@ -1,6 +1,7 @@
 import { FilamentMark } from "./FilamentMark";
 import { CloseIcon, PlusIcon } from "./Icons";
-import type { Conversation } from "@/lib/types";
+import type { Conversation, Project } from "@/lib/types";
+import type { User } from "@supabase/supabase-js";
 
 export function Sidebar({
   conversations,
@@ -10,6 +11,11 @@ export function Sidebar({
   onDelete,
   open,
   onClose,
+  activeProject,
+  onOpenProjects,
+  user,
+  onOpenAuth,
+  onSignOut,
 }: {
   conversations: Conversation[];
   activeId: string | null;
@@ -18,6 +24,11 @@ export function Sidebar({
   onDelete: (id: string) => void;
   open: boolean;
   onClose: () => void;
+  activeProject: Project | null;
+  onOpenProjects: () => void;
+  user: User | null;
+  onOpenAuth: () => void;
+  onSignOut: () => void;
 }) {
   return (
     <>
@@ -35,6 +46,7 @@ export function Sidebar({
           open ? "translate-x-0 md:w-72" : "-translate-x-full md:w-0 md:border-r-0 md:p-0"
         } shrink-0 overflow-hidden shadow-hard md:shadow-none`}
       >
+        {/* Brand & Close */}
         <div className="flex items-center justify-between border-b-2 border-line pb-4">
           <div className="flex items-center gap-3">
             <FilamentMark size={32} />
@@ -49,18 +61,47 @@ export function Sidebar({
           </button>
         </div>
 
-        <button
-          onClick={() => {
-            onNew();
-            if (typeof window !== "undefined" && window.innerWidth < 768) {
-              onClose();
-            }
-          }}
-          className="my-4 flex w-full items-center gap-2 border-2 border-line bg-accent px-4 py-2.5 text-left font-mono text-sm font-bold uppercase text-line shadow-hard-sm active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-        >
-          <PlusIcon size={14} /> New chat
-        </button>
+        {/* Action Buttons: New Chat & Projects */}
+        <div className="my-3 space-y-2">
+          <button
+            onClick={() => {
+              onNew();
+              if (typeof window !== "undefined" && window.innerWidth < 768) {
+                onClose();
+              }
+            }}
+            className="flex w-full items-center gap-2 border-2 border-line bg-accent px-4 py-2 text-left font-mono text-sm font-bold uppercase text-line shadow-hard-sm active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+          >
+            <PlusIcon size={14} /> New chat
+          </button>
 
+          <button
+            onClick={() => {
+              onOpenProjects();
+              if (typeof window !== "undefined" && window.innerWidth < 768) {
+                onClose();
+              }
+            }}
+            className="flex w-full items-center justify-between border-2 border-line bg-surface2 px-4 py-2 text-left font-mono text-xs font-bold uppercase text-ink hover:bg-surface hover:border-accent"
+          >
+            <div className="flex items-center gap-1.5 truncate">
+              <span>📁 PROJECTS</span>
+              {activeProject && (
+                <span className="truncate text-accent text-[10px]">
+                  ({activeProject.name})
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-muted">
+              {activeProject ? `${activeProject.files.length} files` : "MANAGE"}
+            </span>
+          </button>
+        </div>
+
+        {/* Chat History List */}
+        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1 px-1">
+          Recent Chats
+        </div>
         <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
           {conversations.map((c) => (
             <div key={c.id} className="group relative">
@@ -94,6 +135,41 @@ export function Sidebar({
             </div>
           ))}
         </nav>
+
+        {/* User / Auth Footer */}
+        <div className="mt-3 border-t-2 border-line pt-3 font-mono">
+          {user ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="truncate font-bold text-ink max-w-[170px]" title={user.email}>
+                  👤 {user.email?.split("@")[0]}
+                </span>
+                <span className="border border-line bg-accent px-1 py-0.2 text-[9px] font-bold text-line">
+                  20B UNLOCKED
+                </span>
+              </div>
+              <button
+                onClick={onSignOut}
+                className="w-full border border-line bg-surface2 py-1 text-center text-[10px] font-bold uppercase text-muted hover:bg-danger hover:text-white"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-muted">
+                <span>TIER: GUEST (8B)</span>
+                <span className="text-[10px] text-accent">FREE</span>
+              </div>
+              <button
+                onClick={onOpenAuth}
+                className="w-full border-2 border-line bg-accent py-1.5 text-center text-xs font-bold uppercase text-line shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px]"
+              >
+                🔑 Sign In for 20B/Qwen ↗
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
     </>
   );

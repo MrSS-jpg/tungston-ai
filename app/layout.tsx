@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo_Black, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-
-const display = Archivo_Black({ subsets: ["latin"], variable: "--font-display", weight: "400" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500", "700"] });
 
 export const metadata: Metadata = {
   title: "Tungston AI",
@@ -18,7 +14,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${mono.variable}`} style={{ ["--font-body" as string]: "var(--font-mono)" }}>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="font-body antialiased">{children}</body>
     </html>
   );

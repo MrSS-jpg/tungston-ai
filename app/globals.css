@@ -5,6 +5,9 @@
 * { box-sizing: border-box; border-radius: 0; }
 
 :root {
+  --font-display: 'Archivo Black', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: var(--font-mono);
   --color-base: #24272B;
   --color-surface: #2E3237;
   --color-surface2: #3A3F45;

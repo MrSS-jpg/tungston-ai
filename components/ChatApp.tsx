@@ -7,10 +7,16 @@ import { MessageBubble } from "./MessageBubble";
 import { ContextGauge } from "./ContextGauge";
 import { FilamentMark } from "./FilamentMark";
 import { MenuIcon, SunIcon, MoonIcon } from "./Icons";
+import { AuthModal } from "./AuthModal";
+import { ProjectsModal } from "./ProjectsModal";
+import { supabase } from "@/lib/supabase";
 import { estimateTokens } from "@/lib/estimateTokens";
-import type { Attachment, ChatMessage, Conversation } from "@/lib/types";
+import type { Attachment, ChatMessage, Conversation, Project } from "@/lib/types";
+import type { Session, User } from "@supabase/supabase-js";
 
 const STORAGE_KEY = "tungston:conversations";
+const PROJECTS_KEY = "tungston:projects";
+const ACTIVE_PROJ_KEY = "tungston:active_project";
 const uid = () => (crypto as any).randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
 function emptyConversation(): Conversation {
@@ -27,6 +33,16 @@ export default function ChatApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLightMode, setIsLightMode] = useState(false);
 
+  // Supabase Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  // Projects state
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [projectsModalOpen, setProjectsModalOpen] = useState(false);
+
   // Set initial sidebar open state based on screen size
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth >= 768) {
@@ -42,10 +58,27 @@ export default function ChatApp() {
     }
   }, [isLightMode]);
 
-  const [config, setConfig] = useState({ provider: "nara", contextWindowTokens: 128_000 });
+  const [config, setConfig] = useState({ provider: "groq", contextWindowTokens: 128_000 });
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Load persisted conversations + server config once on mount.
+  // Supabase Auth listener
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load persisted conversations, projects + server config once on mount.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -63,6 +96,14 @@ export default function ChatApp() {
       setConversations([c]);
       setActiveId(c.id);
     }
+
+    try {
+      const rawProj = localStorage.getItem(PROJECTS_KEY);
+      if (rawProj) setProjects(JSON.parse(rawProj));
+      const savedActiveProj = localStorage.getItem(ACTIVE_PROJ_KEY);
+      if (savedActiveProj) setActiveProjectId(savedActiveProj);
+    } catch {}
+
     fetch("/api/config")
       .then((r) => r.json())
       .then(setConfig)
@@ -79,10 +120,26 @@ export default function ChatApp() {
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [conversations, activeId]);
 
+  const activeProject = useMemo(
+    () => projects.find((p) => p.id === activeProjectId) ?? null,
+    [projects, activeProjectId]
+  );
+
   const contextUsed = useMemo(
     () => (active ? active.messages.reduce((sum, m) => sum + estimateTokens(m.content), 0) : 0),
     [active]
   );
+
+  function handleSaveProjects(updated: Project[]) {
+    setProjects(updated);
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(updated));
+  }
+
+  function handleSelectProject(id: string | null) {
+    setActiveProjectId(id);
+    if (id) localStorage.setItem(ACTIVE_PROJ_KEY, id);
+    else localStorage.removeItem(ACTIVE_PROJ_KEY);
+  }
 
   function updateConversation(id: string, fn: (c: Conversation) => Conversation) {
     setConversations((prev) => prev.map((c) => (c.id === id ? fn(c) : c)));
@@ -139,6 +196,7 @@ export default function ChatApp() {
       title: isFirstMessage ? text.slice(0, 40) : c.title,
       messages: [...c.messages, userMsg, assistantMsg],
       updatedAt: Date.now(),
+      projectId: activeProjectId,
     }));
     setStaged([]);
     setStreaming(true);
@@ -150,10 +208,33 @@ export default function ChatApp() {
         attachments: m.attachments?.map((a) => ({ mimeType: a.mimeType, fileUri: a.fileUri, dataUrl: a.dataUrl })),
       }));
 
+      // Assemble project context if an active project is set
+      let projectContext = "";
+      if (activeProject && activeProject.files.length) {
+        projectContext =
+          `PROJECT NAME: ${activeProject.name}\n` +
+          activeProject.files
+            .map(
+              (f) =>
+                `--- FILE: ${f.name} ---\n${f.content}\n--- END OF ${f.name} ---`
+            )
+            .join("\n\n");
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        headers,
+        body: JSON.stringify({
+          messages: history,
+          projectContext: projectContext || undefined,
+        }),
       });
       if (!res.body) throw new Error("No response stream");
 
@@ -227,6 +308,11 @@ export default function ChatApp() {
         onDelete={deleteConversation}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        activeProject={activeProject}
+        onOpenProjects={() => setProjectsModalOpen(true)}
+        user={user}
+        onOpenAuth={() => setAuthModalOpen(true)}
+        onSignOut={() => supabase.auth.signOut()}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -239,11 +325,38 @@ export default function ChatApp() {
             >
               <MenuIcon size={16} />
             </button>
-            <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[var(--color-base)]">
-              {config.provider}
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[var(--color-base)]">
+                {user ? "GROQ: 20B OSS (UNLOCKED)" : "GROQ: 8B INSTANT"}
+              </span>
+
+              {activeProject ? (
+                <button
+                  onClick={() => setProjectsModalOpen(true)}
+                  className="border-2 border-line bg-surface2 px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase text-accent hover:bg-accent hover:text-line truncate max-w-[150px] md:max-w-[220px]"
+                  title="Click to view/edit project context files"
+                >
+                  📁 {activeProject.name} ({activeProject.files.length}/5 files)
+                </button>
+              ) : (
+                <button
+                  onClick={() => setProjectsModalOpen(true)}
+                  className="hidden sm:inline-block border border-line bg-surface2 px-1.5 py-0.5 font-mono text-[10px] text-muted hover:text-ink"
+                >
+                  + Attach Project Context
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
+            {!user && (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="hidden sm:inline-block border-2 border-line bg-accent px-2.5 py-1 font-mono text-[10px] md:text-xs font-bold uppercase text-line shadow-hard-sm"
+              >
+                Sign In ↗
+              </button>
+            )}
             <button
               onClick={() => setIsLightMode(!isLightMode)}
               aria-label="Toggle theme"
@@ -261,7 +374,14 @@ export default function ChatApp() {
               <div className="flex max-w-sm flex-col items-center gap-4 border-2 border-line bg-surface p-6 md:p-8 text-center shadow-hard w-full">
                 <FilamentMark size={52} />
                 <p className="font-display text-2xl md:text-3xl uppercase leading-none text-ink">Tungston AI</p>
-                <p className="text-xs md:text-sm text-muted">Built to run long. Ask a question, drop in a file, or generate an image.</p>
+                <p className="text-xs md:text-sm text-muted">
+                  {user ? "Signed in with 20B OSS Engine unlocked." : "Running on Groq 8B engine. Sign in to unlock 20B & Qwen."}
+                </p>
+                {activeProject && (
+                  <div className="border border-line bg-surface2 px-3 py-1.5 font-mono text-xs text-accent">
+                    Active Project: <strong>{activeProject.name}</strong> ({activeProject.files.length} context files injected)
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -280,6 +400,23 @@ export default function ChatApp() {
           uploading={uploading}
         />
       </main>
+
+      {/* Supabase Auth Modal */}
+      <AuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => {}}
+      />
+
+      {/* Projects Context Modal */}
+      <ProjectsModal
+        open={projectsModalOpen}
+        onClose={() => setProjectsModalOpen(false)}
+        projects={projects}
+        activeProjectId={activeProjectId}
+        onSelectProject={handleSelectProject}
+        onSaveProjects={handleSaveProjects}
+      />
     </div>
   );
 }

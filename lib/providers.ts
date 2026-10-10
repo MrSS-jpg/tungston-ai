@@ -8,8 +8,13 @@ export type WireMessage = {
   attachments?: { mimeType: string; fileUri?: string; dataUrl?: string }[];
 };
 
-let PROVIDER = (process.env.AI_PROVIDER || "nara").toLowerCase();
-if (PROVIDER === "gemini") PROVIDER = "nara";
+export type StreamCompletionOptions = {
+  userTier?: "guest" | "authenticated";
+  modelOverride?: string;
+};
+
+let PROVIDER = (process.env.AI_PROVIDER || "groq").toLowerCase();
+if (PROVIDER === "gemini") PROVIDER = "groq";
 const encoder = new TextEncoder();
 
 function textStream(pull: (controller: ReadableStreamDefaultController<Uint8Array>) => Promise<void>) {
@@ -56,7 +61,7 @@ async function pipeSSE(
   }
 }
 
-// ---------- Any OpenAI-compatible provider (Nara, OpenRouter, Groq, Cerebras, Mistral) ----------
+// ---------- Any OpenAI-compatible provider (Groq, Nara, OpenRouter, Cerebras, Mistral) ----------
 
 function toOpenAIMessages(messages: WireMessage[]) {
   return messages.map((m) => {
@@ -98,8 +103,27 @@ async function streamOpenAICompatible(
 
 // ---------- Public entry points ----------
 
-export async function streamCompletion(messages: WireMessage[], system?: string): Promise<ReadableStream<Uint8Array>> {
+export async function streamCompletion(
+  messages: WireMessage[],
+  system?: string,
+  options?: StreamCompletionOptions
+): Promise<ReadableStream<Uint8Array>> {
+  const isAuth = options?.userTier === "authenticated";
+
   switch (PROVIDER) {
+    case "groq": {
+      // Guest: Groq 8B; Authenticated: OpenAI GPT-OSS 20B (or Qwen 27B-32B)
+      const defaultModel = isAuth
+        ? (process.env.GROQ_AUTH_MODEL || "openai/gpt-oss-20b")
+        : (process.env.GROQ_GUEST_MODEL || "llama-3.1-8b-instant");
+      const model = options?.modelOverride || defaultModel;
+
+      return streamOpenAICompatible(messages, system, {
+        baseUrl: "https://api.groq.com/openai/v1/chat/completions",
+        apiKey: process.env.GROQ_API_KEY,
+        model: model,
+      });
+    }
     case "nara":
       return streamOpenAICompatible(messages, system, {
         baseUrl: "https://router.bynara.id/v1/chat/completions",
@@ -110,14 +134,10 @@ export async function streamCompletion(messages: WireMessage[], system?: string)
       return streamOpenAICompatible(messages, system, {
         baseUrl: "https://openrouter.ai/api/v1/chat/completions",
         apiKey: process.env.OPENROUTER_API_KEY,
-        model: process.env.OPENROUTER_MODEL || "google/gemini-3.1-flash",
+        model: isAuth
+          ? (options?.modelOverride || process.env.OPENROUTER_AUTH_MODEL || "openai/gpt-oss-20b")
+          : (process.env.OPENROUTER_GUEST_MODEL || "meta-llama/llama-3.1-8b-instruct:free"),
         extraHeaders: { "HTTP-Referer": process.env.APP_URL || "https://tungston.ai", "X-Title": "Tungston AI" },
-      });
-    case "groq":
-      return streamOpenAICompatible(messages, system, {
-        baseUrl: "https://api.groq.com/openai/v1/chat/completions",
-        apiKey: process.env.GROQ_API_KEY,
-        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
       });
     case "cerebras":
       return streamOpenAICompatible(messages, system, {
@@ -132,7 +152,7 @@ export async function streamCompletion(messages: WireMessage[], system?: string)
         model: process.env.MISTRAL_MODEL || "mistral-large-latest",
       });
     default:
-      throw new Error(`Unknown AI_PROVIDER "${PROVIDER}". Use nara, openrouter, groq, cerebras, or mistral.`);
+      throw new Error(`Unknown AI_PROVIDER "${PROVIDER}". Use groq, nara, openrouter, cerebras, or mistral.`);
   }
 }
 
@@ -144,9 +164,9 @@ export const supportsNativeFiles = false;
 export const currentProvider = PROVIDER;
 
 const CONTEXT_WINDOWS: Record<string, number> = {
+  groq: 128_000,
   nara: 128_000,
   openrouter: 128_000,
-  groq: 128_000,
   cerebras: 128_000,
   mistral: 128_000,
 };
