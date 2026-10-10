@@ -12,6 +12,7 @@ export function Composer({
   onRemoveStaged,
   busy,
   uploading,
+  onStop,
 }: {
   onSend: (text: string) => void;
   onGenerateImage: (prompt: string) => void;
@@ -20,6 +21,7 @@ export function Composer({
   onRemoveStaged: (id: string) => void;
   busy: boolean;
   uploading: boolean;
+  onStop?: () => void;
 }) {
   const [text, setText] = useState("");
   const [imageMode, setImageMode] = useState(false);
@@ -34,7 +36,7 @@ export function Composer({
   };
 
   return (
-    <div className="border-t-2 border-line bg-base px-3 pb-4 pt-3 md:px-8 md:pb-5 md:pt-4">
+    <div className="border-t-2 border-line bg-base px-3 pb-4 pt-3 md:px-8 md:pb-5 md:pt-4 font-mono">
       {!!staged.length && (
         <div className="mb-2 flex flex-wrap gap-2">
           {staged.map((a) => (
@@ -58,7 +60,7 @@ export function Composer({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
+          disabled={uploading || busy}
           title="Attach a file"
           aria-label="Attach a file"
           className="grid h-9 w-9 md:h-10 md:w-10 shrink-0 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line disabled:opacity-40"
@@ -68,11 +70,12 @@ export function Composer({
 
         <button
           onClick={() => setImageMode((v) => !v)}
+          disabled={busy}
           title="Generate an image instead of chatting"
           aria-pressed={imageMode}
           className={`grid h-9 w-9 md:h-10 md:w-10 shrink-0 place-items-center border-2 border-line ${
             imageMode ? "bg-accent text-line" : "bg-surface2 text-ink hover:bg-accent hover:text-line"
-          }`}
+          } disabled:opacity-40`}
         >
           <ImageIcon size={16} />
         </button>
@@ -87,18 +90,37 @@ export function Composer({
             }
           }}
           rows={1}
-          placeholder={imageMode ? "Describe image to forge…" : "Message Tungston AI…"}
-          className="max-h-36 min-h-[2.4rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-[16px] md:text-[15px] text-ink placeholder:text-muted font-mono leading-relaxed"
+          placeholder={
+            busy
+              ? "Generating response…"
+              : imageMode
+              ? "Describe image to forge…"
+              : "Message Tungston AI… (Enter to send, Shift+Enter for new line)"
+          }
+          className="max-h-36 min-h-[2.4rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] text-ink placeholder:text-muted font-mono leading-relaxed outline-none"
         />
 
-        <button
-          onClick={submit}
-          disabled={busy || !text.trim()}
-          aria-label="Send message"
-          className="grid h-9 w-9 md:h-10 md:w-10 shrink-0 place-items-center border-2 border-line bg-accent text-line enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] disabled:opacity-30"
-        >
-          <SendIcon size={16} />
-        </button>
+        {busy ? (
+          <button
+            onClick={onStop}
+            type="button"
+            title="Stop generation"
+            aria-label="Stop generation"
+            className="flex items-center gap-1.5 h-9 md:h-10 px-3 shrink-0 border-2 border-line bg-danger text-white font-mono text-xs font-bold uppercase shadow-hard-sm hover:bg-red-700 active:translate-x-[1px] active:translate-y-[1px]"
+          >
+            <span className="inline-block h-2.5 w-2.5 bg-white" />
+            <span className="hidden sm:inline">STOP</span>
+          </button>
+        ) : (
+          <button
+            onClick={submit}
+            disabled={!text.trim()}
+            aria-label="Send message"
+            className="grid h-9 w-9 md:h-10 md:w-10 shrink-0 place-items-center border-2 border-line bg-accent text-line enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] disabled:opacity-30"
+          >
+            <SendIcon size={16} />
+          </button>
+        )}
       </div>
     </div>
   );

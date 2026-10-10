@@ -16,6 +16,10 @@ export function Sidebar({
   user,
   onOpenAuth,
   onSignOut,
+  onOpenByok,
+  byokActive,
+  onExportChat,
+  onClearAll,
 }: {
   conversations: Conversation[];
   activeId: string | null;
@@ -29,7 +33,14 @@ export function Sidebar({
   user: User | null;
   onOpenAuth: () => void;
   onSignOut: () => void;
+  onOpenByok: () => void;
+  byokActive: boolean;
+  onExportChat?: () => void;
+  onClearAll?: () => void;
 }) {
+  const activeConvo = conversations.find((c) => c.id === activeId);
+  const hasMessages = Boolean(activeConvo && activeConvo.messages.length > 0);
+
   return (
     <>
       {/* Mobile Backdrop Overlay */}
@@ -98,10 +109,31 @@ export function Sidebar({
           </button>
         </div>
 
-        {/* Chat History List */}
-        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1 px-1">
-          Recent Chats
+        {/* Chat History Header & Utilities */}
+        <div className="flex items-center justify-between text-[10px] font-mono font-bold uppercase tracking-wider text-muted mb-1 px-1">
+          <span>Recent Chats</span>
+          <div className="flex items-center gap-2">
+            {hasMessages && onExportChat && (
+              <button
+                onClick={onExportChat}
+                className="text-muted hover:text-accent font-bold"
+                title="Export active conversation as Markdown (.md)"
+              >
+                EXPORT
+              </button>
+            )}
+            {conversations.length > 1 && onClearAll && (
+              <button
+                onClick={onClearAll}
+                className="text-muted hover:text-danger font-bold"
+                title="Clear all chat history"
+              >
+                CLEAR
+              </button>
+            )}
+          </div>
         </div>
+
         <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
           {conversations.map((c) => (
             <div key={c.id} className="group relative">
@@ -136,8 +168,27 @@ export function Sidebar({
           ))}
         </nav>
 
-        {/* User / Auth Footer */}
-        <div className="mt-3 border-t-2 border-line pt-3 font-mono">
+        {/* BYOK and User / Auth Footer */}
+        <div className="mt-3 border-t-2 border-line pt-3 font-mono space-y-2">
+          {/* BYOK Toggle Button */}
+          <button
+            onClick={() => {
+              onOpenByok();
+              if (typeof window !== "undefined" && window.innerWidth < 768) {
+                onClose();
+              }
+            }}
+            className={`w-full border-2 border-line py-1.5 px-3 flex items-center justify-between text-xs font-bold uppercase transition-colors ${
+              byokActive
+                ? "bg-accent text-line"
+                : "bg-surface2 text-muted hover:bg-surface hover:text-ink"
+            }`}
+            title="Configure Bring-Your-Own-Key"
+          >
+            <span>🔑 BYOK KEY</span>
+            <span className="text-[10px]">{byokActive ? "ACTIVE" : "CONFIG ↗"}</span>
+          </button>
+
           {user ? (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">

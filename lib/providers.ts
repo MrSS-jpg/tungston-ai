@@ -11,6 +11,8 @@ export type WireMessage = {
 export type StreamCompletionOptions = {
   userTier?: "guest" | "authenticated";
   modelOverride?: string;
+  byokApiKey?: string;
+  byokProvider?: string;
 };
 
 let PROVIDER = (process.env.AI_PROVIDER || "groq").toLowerCase();
@@ -132,7 +134,11 @@ async function streamOpenAICompatible(
         continue;
       }
 
-      // For hard auth or quota errors (401, 429), fail immediately
+      if (res.status === 429) {
+        throw new Error(`UPSTREAM_429: ${PROVIDER.toUpperCase()} rate limit or quota exceeded. Please wait a few seconds, or switch to your own BYOK key.`);
+      }
+
+      // For hard auth or quota errors (401), fail immediately
       throw new Error(lastErr);
     } catch (e: any) {
       if (e.message && (
@@ -181,6 +187,35 @@ export async function streamCompletion(
   options?: StreamCompletionOptions
 ): Promise<ReadableStream<Uint8Array>> {
   const isAuth = options?.userTier === "authenticated";
+  const byokKey = options?.byokApiKey?.trim();
+  const byokProvider = (options?.byokProvider || "groq").toLowerCase();
+
+  // Route to user's personal BYOK key if provided
+  if (byokKey) {
+    if (byokProvider === "openrouter") {
+      return streamOpenAICompatible(messages, system, {
+        baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+        apiKey: byokKey,
+        model: options?.modelOverride || "meta-llama/llama-3.1-8b-instruct:free",
+        extraHeaders: { "HTTP-Referer": "https://tungston-ai.vercel.app", "X-Title": "Tungston AI" },
+      });
+    }
+    if (byokProvider === "cerebras") {
+      return streamOpenAICompatible(messages, system, {
+        baseUrl: "https://api.cerebras.ai/v1/chat/completions",
+        apiKey: byokKey,
+        model: options?.modelOverride || "llama-3.3-70b",
+      });
+    }
+    // Groq BYOK
+    const chosenModel = options?.modelOverride || (isAuth ? "qwen/qwen3.8-27b" : "openai/gpt-oss-20b");
+    return streamOpenAICompatible(messages, system, {
+      baseUrl: "https://api.groq.com/openai/v1/chat/completions",
+      apiKey: byokKey,
+      model: chosenModel,
+      fallbackModels: ["openai/gpt-oss-20b", "qwen/qwen3.8-27b", "openai/gpt-oss-120b"].filter((m) => m !== chosenModel),
+    });
+  }
 
   switch (PROVIDER) {
     case "groq": {

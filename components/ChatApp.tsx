@@ -9,6 +9,7 @@ import { FilamentMark } from "./FilamentMark";
 import { MenuIcon, SunIcon, MoonIcon } from "./Icons";
 import { AuthModal } from "./AuthModal";
 import { ProjectsModal } from "./ProjectsModal";
+import { ByokModal, getStoredByok, type ByokConfig } from "./ByokModal";
 import { supabase } from "@/lib/supabase";
 import { estimateTokens } from "@/lib/estimateTokens";
 import type { Attachment, ChatMessage, Conversation, Project } from "@/lib/types";
@@ -23,6 +24,29 @@ function emptyConversation(): Conversation {
   const now = Date.now();
   return { id: uid(), title: "New chat", messages: [], createdAt: now, updatedAt: now };
 }
+
+const STARTER_PROMPTS = [
+  {
+    tag: "BENCHMARK",
+    title: "⚡ Speed & Precision Test",
+    prompt: "Give me a 5-point technical benchmark of Groq's open-weights architecture with brutally honest pros and cons.",
+  },
+  {
+    tag: "ARCHITECTURE",
+    title: "🏗️ Edge System Audit",
+    prompt: "Review a Next.js 14 fullstack architecture running edge API routes with Supabase auth and brutalist UI principles.",
+  },
+  {
+    tag: "DEBUG",
+    title: "🐞 Code Debugging",
+    prompt: "Analyze this TypeScript snippet for memory leaks, unhandled edge cases, and asynchronous race conditions.",
+  },
+  {
+    tag: "CONTEXT",
+    title: "📁 Project Knowledge",
+    prompt: "How does Tungston AI ingest and prioritize attached Markdown files within its system prompt context?",
+  },
+];
 
 export default function ChatApp() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -45,6 +69,16 @@ export default function ChatApp() {
 
   // Authenticated Model selector state
   const [selectedModel, setSelectedModel] = useState<string>("qwen/qwen3.8-27b");
+
+  // BYOK state
+  const [byokConfig, setByokConfig] = useState<ByokConfig>({ key: "", provider: "groq" });
+  const [byokModalOpen, setByokModalOpen] = useState(false);
+
+  // Abort controller for Stop button
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Quota banner state
+  const [rateLimitBanner, setRateLimitBanner] = useState<string | null>(null);
 
   // Set initial sidebar open state based on screen size
   useEffect(() => {
@@ -81,7 +115,7 @@ export default function ChatApp() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load persisted conversations, projects + server config once on mount.
+  // Load persisted conversations, projects, model selection + server config once on mount.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -107,6 +141,7 @@ export default function ChatApp() {
       if (savedActiveProj) setActiveProjectId(savedActiveProj);
       const savedModel = localStorage.getItem("tungston_member_model");
       if (savedModel) setSelectedModel(savedModel);
+      setByokConfig(getStoredByok());
     } catch {}
 
     fetch("/api/config")
@@ -171,20 +206,49 @@ export default function ChatApp() {
     });
   }
 
+  function handleClearAll() {
+    if (confirm("Clear all conversation history? This cannot be undone.")) {
+      const c = emptyConversation();
+      setConversations([c]);
+      setActiveId(c.id);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  function handleExportChat() {
+    if (!active || !active.messages.length) return;
+    const title = active.title || "Tungston Chat";
+    let md = `# ${title}\n*Exported from Tungston AI on ${new Date().toLocaleString()}*\n\n---\n\n`;
+    for (const m of active.messages) {
+      const speaker = m.role === "user" ? "USER" : "TUNGSTON AI";
+      md += `### ${speaker} (${new Date(m.createdAt).toLocaleTimeString()}):\n\n${m.content}\n\n---\n\n`;
+    }
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleStop() {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setStreaming(false);
+  }
+
   async function handleAttach(files: FileList) {
     setUploading(true);
     try {
-      for (const file of Array.from(files)) {
-        const form = new FormData();
-        form.append("file", file);
-        const res = await fetch("/api/upload", { method: "POST", body: form });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Upload failed");
-        setStaged((prev) => [
-          ...prev,
-          { id: uid(), name: json.name, mimeType: json.mimeType, fileUri: json.fileUri, dataUrl: json.dataUrl, sizeBytes: json.sizeBytes },
-        ]);
-      }
+      const form = new FormData();
+      Array.from(files).forEach((f) => form.append("files", f));
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Upload failed");
+      setStaged((prev) => [...prev, ...json.attachments]);
     } catch (err) {
       alert((err as Error).message);
     } finally {
@@ -196,25 +260,41 @@ export default function ChatApp() {
     setStaged((prev) => prev.filter((a) => a.id !== id));
   }
 
-  async function sendMessage(text: string) {
+  async function sendMessage(text: string, isRetry = false) {
     if (!active) return;
+    setRateLimitBanner(null);
     const convoId = active.id;
-    const userMsg: ChatMessage = { id: uid(), role: "user", content: text, attachments: staged, createdAt: Date.now() };
+
+    let historyMessages = [...active.messages];
+    if (isRetry) {
+      // Remove trailing assistant message if regenerating
+      if (historyMessages[historyMessages.length - 1]?.role === "assistant") {
+        historyMessages.pop();
+      }
+    }
+
+    const userMsg: ChatMessage = isRetry
+      ? historyMessages[historyMessages.length - 1]
+      : { id: uid(), role: "user", content: text, attachments: staged, createdAt: Date.now() };
+
     const assistantMsg: ChatMessage = { id: uid(), role: "assistant", content: "", pending: true, createdAt: Date.now() };
 
     const isFirstMessage = active.messages.length === 0;
     updateConversation(convoId, (c) => ({
       ...c,
       title: isFirstMessage ? text.slice(0, 40) : c.title,
-      messages: [...c.messages, userMsg, assistantMsg],
+      messages: isRetry ? [...historyMessages, assistantMsg] : [...historyMessages, userMsg, assistantMsg],
       updatedAt: Date.now(),
       projectId: activeProjectId,
     }));
-    setStaged([]);
+    if (!isRetry) setStaged([]);
     setStreaming(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const history = [...active.messages, userMsg].map((m) => ({
+      const history = (isRetry ? historyMessages : [...historyMessages, userMsg]).map((m) => ({
         role: m.role,
         content: m.content,
         attachments: m.attachments?.map((a) => ({ mimeType: a.mimeType, fileUri: a.fileUri, dataUrl: a.dataUrl })),
@@ -239,16 +319,31 @@ export default function ChatApp() {
       if (session?.access_token) {
         headers["Authorization"] = `Bearer ${session.access_token}`;
       }
+      if (byokConfig.key) {
+        headers["x-byok-key"] = byokConfig.key;
+        headers["x-byok-provider"] = byokConfig.provider || "groq";
+      }
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers,
+        signal: controller.signal,
         body: JSON.stringify({
           messages: history,
           projectContext: projectContext || undefined,
-          modelOverride: user ? selectedModel : undefined,
+          modelOverride: byokConfig.model || (user ? selectedModel : undefined),
         }),
       });
+
+      if (!res.ok) {
+        const errorJson = await res.json().catch(() => null);
+        const errMsg = errorJson?.error || `Server returned ${res.status}`;
+        if (res.status === 429) {
+          setRateLimitBanner(errMsg);
+        }
+        throw new Error(errMsg);
+      }
+
       if (!res.body) throw new Error("No response stream");
 
       const reader = res.body.getReader();
@@ -267,15 +362,32 @@ export default function ChatApp() {
         ...c,
         messages: c.messages.map((m) => (m.id === assistantMsg.id ? { ...m, pending: false } : m)),
       }));
-    } catch (err) {
-      updateConversation(convoId, (c) => ({
-        ...c,
-        messages: c.messages.map((m) =>
-          m.id === assistantMsg.id ? { ...m, pending: false, content: `Something went wrong: ${(err as Error).message}` } : m
-        ),
-      }));
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        updateConversation(convoId, (c) => ({
+          ...c,
+          messages: c.messages.map((m) => (m.id === assistantMsg.id ? { ...m, pending: false } : m)),
+        }));
+      } else {
+        updateConversation(convoId, (c) => ({
+          ...c,
+          messages: c.messages.map((m) =>
+            m.id === assistantMsg.id ? { ...m, pending: false, content: `Error: ${err.message}` } : m
+          ),
+        }));
+      }
     } finally {
       setStreaming(false);
+      abortControllerRef.current = null;
+    }
+  }
+
+  function handleRegenerate() {
+    if (!active || !active.messages.length) return;
+    const userMsgs = active.messages.filter((m) => m.role === "user");
+    const lastUser = userMsgs[userMsgs.length - 1];
+    if (lastUser) {
+      sendMessage(lastUser.content, true);
     }
   }
 
@@ -326,10 +438,14 @@ export default function ChatApp() {
         user={user}
         onOpenAuth={() => setAuthModalOpen(true)}
         onSignOut={() => supabase.auth.signOut()}
+        onOpenByok={() => setByokModalOpen(true)}
+        byokActive={Boolean(byokConfig.key)}
+        onExportChat={handleExportChat}
+        onClearAll={handleClearAll}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-3 py-2.5 md:px-8 md:py-3">
+        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-3 py-2.5 md:px-8 md:py-3 font-mono">
           <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
@@ -339,7 +455,15 @@ export default function ChatApp() {
               <MenuIcon size={16} />
             </button>
             <div className="flex items-center gap-1.5 flex-wrap">
-              {user ? (
+              {byokConfig.key ? (
+                <button
+                  onClick={() => setByokModalOpen(true)}
+                  className="flex items-center border-2 border-line bg-accent text-line px-2 py-0.5 text-[10px] md:text-[11px] font-bold uppercase shadow-hard-sm"
+                  title="Click to configure BYOK settings"
+                >
+                  🔑 BYOK: {byokConfig.provider.toUpperCase()}
+                </button>
+              ) : user ? (
                 <div className="flex items-center border-2 border-line bg-surface font-mono text-[10px] md:text-[11px] shadow-hard-sm">
                   <span className="bg-accent px-1.5 py-0.5 font-bold uppercase text-line hidden sm:inline-block">
                     MEMBER
@@ -380,6 +504,15 @@ export default function ChatApp() {
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
+            {!byokConfig.key && (
+              <button
+                onClick={() => setByokModalOpen(true)}
+                className="hidden lg:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-muted hover:text-ink"
+                title="Bring your own API key"
+              >
+                BYOK ↗
+              </button>
+            )}
             {!user && (
               <button
                 onClick={() => setAuthModalOpen(true)}
@@ -399,14 +532,34 @@ export default function ChatApp() {
           </div>
         </header>
 
+        {/* Rate Limit Banner */}
+        {rateLimitBanner && (
+          <div className="border-b-2 border-line bg-surface2 px-4 py-2 font-mono text-xs flex items-center justify-between text-ink">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-danger">⚠️ RATE LIMIT:</span>
+              <span>{rateLimitBanner}</span>
+            </div>
+            <button
+              onClick={() => setByokModalOpen(true)}
+              className="border border-line bg-accent px-2 py-0.5 font-bold uppercase text-line text-[10px]"
+            >
+              Use BYOK Key ↗
+            </button>
+          </div>
+        )}
+
         <div ref={scrollRef} className="flex-1 space-y-4 md:space-y-5 overflow-y-auto px-3 py-4 md:px-8 md:py-6">
           {!active?.messages.length && (
-            <div className="flex h-full items-center justify-center p-4">
-              <div className="flex max-w-sm flex-col items-center gap-4 border-2 border-line bg-surface p-6 md:p-8 text-center shadow-hard w-full">
-                <FilamentMark size={52} />
-                <p className="font-display text-2xl md:text-3xl uppercase leading-none text-ink">Tungston AI</p>
-                <p className="text-xs md:text-sm text-muted">
-                  {user ? "Signed in with 20B OSS Engine unlocked." : "Running on Groq 8B engine. Sign in to unlock 20B & Qwen."}
+            <div className="flex min-h-full flex-col items-center justify-center p-2 sm:p-4 font-mono">
+              <div className="flex max-w-xl flex-col items-center gap-3 border-2 border-line bg-surface p-6 md:p-8 text-center shadow-hard w-full mb-6">
+                <FilamentMark size={48} />
+                <h1 className="font-display text-2xl md:text-3xl uppercase leading-none text-ink">Tungston AI</h1>
+                <p className="text-xs md:text-sm text-muted max-w-md">
+                  {byokConfig.key
+                    ? `Running on personal BYOK key (${byokConfig.provider.toUpperCase()}). Unlimited personal quota active.`
+                    : user
+                    ? "Signed in member. Qwen 3.8 27B & GPT-OSS 120B models unlocked."
+                    : "Running on Groq GPT-OSS 20B engine. Sign in to unlock Qwen 3.8 27B & GPT-OSS 120B."}
                 </p>
                 {activeProject && (
                   <div className="border border-line bg-surface2 px-3 py-1.5 font-mono text-xs text-accent">
@@ -414,10 +567,34 @@ export default function ChatApp() {
                   </div>
                 )}
               </div>
+
+              {/* Starter Prompts Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
+                {STARTER_PROMPTS.map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => sendMessage(item.prompt)}
+                    className="border-2 border-line bg-surface p-3 text-left shadow-hard-sm hover:border-accent hover:bg-surface2 transition-all active:translate-x-[1px] active:translate-y-[1px]"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-accent uppercase tracking-wider">{item.tag}</span>
+                      <span className="text-muted text-[10px]">↗</span>
+                    </div>
+                    <div className="font-bold text-xs text-ink mb-1">{item.title}</div>
+                    <div className="text-[11px] text-muted line-clamp-2">{item.prompt}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-          {active?.messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+          {active?.messages.map((m, idx) => (
+            <MessageBubble
+              key={m.id}
+              message={m}
+              isLatest={idx === active.messages.length - 1}
+              onRegenerate={handleRegenerate}
+            />
           ))}
         </div>
 
@@ -429,6 +606,7 @@ export default function ChatApp() {
           onRemoveStaged={removeStaged}
           busy={streaming}
           uploading={uploading}
+          onStop={handleStop}
         />
       </main>
 
@@ -447,6 +625,13 @@ export default function ChatApp() {
         activeProjectId={activeProjectId}
         onSelectProject={handleSelectProject}
         onSaveProjects={handleSaveProjects}
+      />
+
+      {/* BYOK Configuration Modal */}
+      <ByokModal
+        open={byokModalOpen}
+        onClose={() => setByokModalOpen(false)}
+        onSave={(cfg) => setByokConfig(cfg)}
       />
     </div>
   );
