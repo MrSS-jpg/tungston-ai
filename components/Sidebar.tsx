@@ -145,7 +145,7 @@ export function Sidebar({
                   👤 {user.email?.split("@")[0]}
                 </span>
                 <span className="border border-line bg-accent px-1 py-0.2 text-[9px] font-bold text-line">
-                  20B UNLOCKED
+                  27B UNLOCKED
                 </span>
               </div>
               <button
@@ -158,14 +158,14 @@ export function Sidebar({
           ) : (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px] text-muted">
-                <span>TIER: GUEST (8B)</span>
+                <span>TIER: GUEST (20B)</span>
                 <span className="text-[10px] text-accent">FREE</span>
               </div>
               <button
                 onClick={onOpenAuth}
                 className="w-full border-2 border-line bg-accent py-1.5 text-center text-xs font-bold uppercase text-line shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px]"
               >
-                🔑 Sign In for 20B/Qwen ↗
+                🔑 Sign In for Qwen 27B ↗
               </button>
             </div>
           )}

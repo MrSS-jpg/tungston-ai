@@ -78,12 +78,12 @@ export function AuthModal({
         <div className="mb-5 border-2 border-line bg-surface2 p-3 font-mono text-xs">
           <div className="font-bold text-accent uppercase mb-1">Tier Breakdown:</div>
           <div className="text-muted">
-            • <strong className="text-ink">Guest:</strong> Groq 8B Instant engine.
+            • <strong className="text-ink">Guest:</strong> Fast OpenAI GPT-OSS 20B engine.
           </div>
           <div className="text-muted">
             • <strong className="text-ink">Signed In:</strong> Unlocks{" "}
-            <span className="text-accent font-bold">OpenAI GPT-OSS 20B</span> &amp;{" "}
-            <span className="text-accent font-bold">Qwen 27B–32B</span> models.
+            <span className="text-accent font-bold">Qwen 3.8 27B</span> &amp;{" "}
+            <span className="text-accent font-bold">GPT-OSS 120B</span> frontier models.
           </div>
         </div>
 

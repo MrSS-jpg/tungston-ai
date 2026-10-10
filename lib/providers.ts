@@ -123,7 +123,9 @@ async function streamOpenAICompatible(
           errText.includes("decommissioned") ||
           errText.includes("model_not_found") ||
           errText.includes("does not exist") ||
-          errText.includes("no longer supported")
+          errText.includes("not found") ||
+          errText.includes("no longer supported") ||
+          (errText.includes("model") && (errText.includes("access") || errText.includes("unknown") || errText.includes("invalid")))
         ));
 
       if (isModelError) {
@@ -133,7 +135,12 @@ async function streamOpenAICompatible(
       // For hard auth or quota errors (401, 429), fail immediately
       throw new Error(lastErr);
     } catch (e: any) {
-      if (e.message && (e.message.includes("404") || e.message.includes("decommissioned"))) continue;
+      if (e.message && (
+        e.message.includes("404") ||
+        e.message.includes("decommissioned") ||
+        e.message.includes("not exist") ||
+        e.message.includes("model_not_found")
+      )) continue;
       throw e;
     }
   }
@@ -149,6 +156,25 @@ async function streamOpenAICompatible(
 
 // ---------- Public entry points ----------
 
+const DECOMMISSIONED_GROQ_MODELS = new Set([
+  "llama-3.1-8b-instant",
+  "llama3-8b-8192",
+  "llama3-70b-8192",
+  "llama-3.3-70b-versatile",
+  "gemma2-9b-it",
+  "gemma-7b-it",
+  "llama-3.2-1b-preview",
+  "llama-3.2-3b-preview",
+  "llama-3.2-11b-vision-preview",
+  "llama-3.2-90b-vision-preview",
+  "mixtral-8x7b-32768",
+]);
+
+function sanitizeGroqModel(model: string | undefined, defaultModel: string): string {
+  if (!model || DECOMMISSIONED_GROQ_MODELS.has(model)) return defaultModel;
+  return model;
+}
+
 export async function streamCompletion(
   messages: WireMessage[],
   system?: string,
@@ -158,23 +184,26 @@ export async function streamCompletion(
 
   switch (PROVIDER) {
     case "groq": {
-      // Production-ready Groq model list:
-      // llama-3.3-70b-versatile is the guaranteed active flagship.
-      // llama-3.1-8b-instant, gemma2-9b-it, qwen-2.5-32b as robust alternatives.
+      // Production-ready active Groq models:
+      // Guest: openai/gpt-oss-20b (Ultra-fast 20B MoE, 131k context window)
+      // Authenticated: qwen/qwen3.8-27b (Frontier multimodal 27B, 131k context window)
+      // Fallbacks: openai/gpt-oss-120b, openai/gpt-oss-20b, qwen/qwen3.8-27b
       const guestFallbacks = [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
-        "gemma2-9b-it",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-120b",
       ];
       const authFallbacks = [
-        "llama-3.3-70b-versatile",
-        "qwen-2.5-32b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-120b",
         "openai/gpt-oss-20b",
-        "gemma2-9b-it",
       ];
 
-      const primaryGuest = process.env.GROQ_GUEST_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-      const primaryAuth = process.env.GROQ_AUTH_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+      const rawGuest = process.env.GROQ_GUEST_MODEL || process.env.GROQ_MODEL;
+      const rawAuth = process.env.GROQ_AUTH_MODEL || process.env.GROQ_MODEL;
+
+      const primaryGuest = sanitizeGroqModel(rawGuest, "openai/gpt-oss-20b");
+      const primaryAuth = sanitizeGroqModel(rawAuth, "qwen/qwen3.8-27b");
 
       const chosenModel = options?.modelOverride || (isAuth ? primaryAuth : primaryGuest);
       const fallbacks = (isAuth ? authFallbacks : guestFallbacks).filter((m) => m !== chosenModel);

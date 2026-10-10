@@ -327,7 +327,7 @@ export default function ChatApp() {
             </button>
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[var(--color-base)]">
-                {user ? "GROQ: 20B OSS (UNLOCKED)" : "GROQ: 8B INSTANT"}
+                {user ? "GROQ: QWEN 27B / 120B (UNLOCKED)" : "GROQ: GPT-OSS 20B"}
               </span>
 
               {activeProject ? (
