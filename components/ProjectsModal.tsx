@@ -5,6 +5,8 @@ import type { Project, ProjectFile } from "@/lib/types";
 import { CloseIcon, PlusIcon } from "./Icons";
 
 const MAX_FILES_PER_PROJECT = 5;
+const MAX_FILE_SIZE_BYTES = 40 * 1024; // 40 KB per file (~10,000 tokens)
+const MAX_TOTAL_PROJECT_BYTES = 64 * 1024; // 64 KB total context (~16,000 tokens)
 
 export function ProjectsModal({
   open,
@@ -71,6 +73,8 @@ export function ProjectsModal({
       return;
     }
 
+    const existingBytes = currentProject.files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+    let runningBytes = existingBytes;
     const newFiles: ProjectFile[] = [];
 
     for (const file of Array.from(files)) {
@@ -80,15 +84,35 @@ export function ProjectsModal({
         continue;
       }
 
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setErrorMsg(
+          `File "${file.name}" (${(file.size / 1024).toFixed(1)} KB) exceeds the 40 KB limit. Large files are rejected to protect your Groq token limits.`
+        );
+        continue;
+      }
+
+      if (runningBytes + file.size > MAX_TOTAL_PROJECT_BYTES) {
+        setErrorMsg(
+          `Adding "${file.name}" would exceed the 64 KB total context limit for this project (${((runningBytes + file.size) / 1024).toFixed(1)} KB). Remove or trim existing files first.`
+        );
+        continue;
+      }
+
       try {
         const text = await file.text();
+        if (text.length > 50_000) {
+          setErrorMsg(`File "${file.name}" contains too much text (${text.length.toLocaleString()} characters). Max allowed is 50,000 characters.`);
+          continue;
+        }
+
+        runningBytes += file.size;
         newFiles.push({
           id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`,
           name: file.name,
           content: text,
           sizeBytes: file.size,
         });
-      } catch (err) {
+      } catch {
         setErrorMsg(`Failed reading ${file.name}`);
       }
     }
@@ -274,6 +298,29 @@ export function ProjectsModal({
                     {errorMsg}
                   </div>
                 )}
+
+                {/* Context Budget Indicator */}
+                <div className="border-2 border-line bg-surface p-3 font-mono text-xs">
+                  <div className="flex items-center justify-between mb-1.5 font-bold">
+                    <span className="uppercase text-ink">Context Budget Limit:</span>
+                    <span className={((currentProject?.files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0) || 0) / MAX_TOTAL_PROJECT_BYTES) > 0.8 ? "text-danger" : "text-accent"}>
+                      {((currentProject?.files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0) || 0) / 1024).toFixed(1)} KB / 64 KB ({Math.min(100, Math.round(((currentProject?.files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0) || 0) / MAX_TOTAL_PROJECT_BYTES) * 100))}%)
+                    </span>
+                  </div>
+                  <div className="h-2 w-full border border-line bg-base overflow-hidden">
+                    <div
+                      className={`h-full transition-all ${
+                        ((currentProject?.files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0) || 0) / MAX_TOTAL_PROJECT_BYTES) > 0.8 ? "bg-danger" : "bg-accent"
+                      }`}
+                      style={{
+                        width: `${Math.min(100, Math.round(((currentProject?.files.reduce((sum, f) => sum + (f.sizeBytes || 0), 0) || 0) / MAX_TOTAL_PROJECT_BYTES) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted mt-1.5">
+                    Max 40 KB per file · Max 64 KB total. Enforced to protect Groq API limits from sudden exhaustion.
+                  </p>
+                </div>
 
                 {/* Upload Section */}
                 <div className="border-2 border-dashed border-line bg-surface2 p-4 text-center">

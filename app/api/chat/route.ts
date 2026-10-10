@@ -79,12 +79,21 @@ export async function POST(req: Request) {
       });
     }
 
-    // Assemble system prompt with custom project files context if active
+    // Assemble system prompt with custom project files context if active (capped to 64KB safe limit)
     let effectiveSystemPrompt = SYSTEM_PROMPT;
     if (body.projectContext && typeof body.projectContext === "string" && body.projectContext.trim().length > 0) {
+      const rawContext = body.projectContext.trim();
+      const MAX_SAFE_CONTEXT_CHARS = 64 * 1024; // 64 KB safety limit
+      let safeContext = rawContext;
+      if (rawContext.length > MAX_SAFE_CONTEXT_CHARS) {
+        safeContext =
+          rawContext.slice(0, MAX_SAFE_CONTEXT_CHARS) +
+          "\n\n[WARNING: Attached project context exceeded the 64 KB safe cap and was truncated to protect Groq API token limits.]";
+      }
+
       effectiveSystemPrompt +=
         "\n\n=== ATTACHED PROJECT CONTEXT & FILES ===\n" +
-        body.projectContext.trim() +
+        safeContext +
         "\n========================================\n" +
         "You have direct access to the project files above. Treat their contents as persistent knowledge and ground truth for this project.";
     }

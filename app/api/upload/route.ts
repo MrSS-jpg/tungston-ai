@@ -17,6 +17,15 @@ export async function POST(req: Request) {
       return Response.json({ error: "File is too large (30MB limit)." }, { status: 413 });
     }
 
+    // Cap text and markdown files to 40KB to avoid blowing out Groq tokens
+    const isText = file.type.startsWith("text/") || file.name.endsWith(".md") || file.name.endsWith(".txt");
+    if (isText && file.size > 40 * 1024) {
+      return Response.json(
+        { error: `File "${file.name}" (${(file.size / 1024).toFixed(1)} KB) exceeds the 40 KB limit. Text files are capped to protect API token limits.` },
+        { status: 413 }
+      );
+    }
+
     if (file.size > MAX_INLINE_BYTES) {
       return Response.json({ error: "File too large to send inline for this provider." }, { status: 413 });
     }
