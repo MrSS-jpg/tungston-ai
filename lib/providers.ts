@@ -80,24 +80,64 @@ function toOpenAIMessages(messages: WireMessage[]) {
 async function streamOpenAICompatible(
   messages: WireMessage[],
   system: string | undefined,
-  cfg: { baseUrl: string; apiKey: string | undefined; model: string; extraHeaders?: Record<string, string> }
+  cfg: {
+    baseUrl: string;
+    apiKey: string | undefined;
+    model: string;
+    extraHeaders?: Record<string, string>;
+    fallbackModels?: string[];
+  }
 ) {
   if (!cfg.apiKey) throw new Error(`${PROVIDER.toUpperCase()}_API_KEY is not set`);
   const wire = system ? [{ role: "system" as const, content: system }, ...messages] : messages;
 
-  const res = await fetch(cfg.baseUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${cfg.apiKey}`,
-      ...cfg.extraHeaders,
-    },
-    body: JSON.stringify({ model: cfg.model, stream: true, messages: toOpenAIMessages(wire) }),
-  });
-  if (!res.ok || !res.body) throw new Error(`${PROVIDER} error ${res.status}: ${await res.text()}`);
+  const candidateModels = [cfg.model, ...(cfg.fallbackModels || [])];
+  let lastErr = "";
+  let activeRes: Response | null = null;
+
+  for (const modelToTry of candidateModels) {
+    try {
+      const res = await fetch(cfg.baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cfg.apiKey}`,
+          ...cfg.extraHeaders,
+        },
+        body: JSON.stringify({ model: modelToTry, stream: true, messages: toOpenAIMessages(wire) }),
+      });
+
+      if (res.ok && res.body) {
+        activeRes = res;
+        break;
+      }
+
+      const errText = await res.text();
+      lastErr = `${PROVIDER} error ${res.status}: ${errText}`;
+
+      // If model not found or forbidden on this specific model ID, attempt next candidate
+      if (
+        res.status === 404 ||
+        errText.includes("model_not_found") ||
+        errText.includes("does not exist or you do not have access")
+      ) {
+        continue;
+      }
+
+      // For hard auth or quota errors (401, 429), fail immediately
+      throw new Error(lastErr);
+    } catch (e: any) {
+      if (e.message && e.message.includes("404")) continue;
+      throw e;
+    }
+  }
+
+  if (!activeRes || !activeRes.body) {
+    throw new Error(lastErr || `${PROVIDER} could not establish a stream with any requested model.`);
+  }
 
   return textStream((controller) =>
-    pipeSSE(res.body!, controller, (json) => json?.choices?.[0]?.delta?.content)
+    pipeSSE(activeRes!.body!, controller, (json) => json?.choices?.[0]?.delta?.content)
   );
 }
 
@@ -112,16 +152,32 @@ export async function streamCompletion(
 
   switch (PROVIDER) {
     case "groq": {
-      // Guest: Groq 8B; Authenticated: OpenAI GPT-OSS 20B (or Qwen 27B-32B)
-      const defaultModel = isAuth
-        ? (process.env.GROQ_AUTH_MODEL || "openai/gpt-oss-20b")
-        : (process.env.GROQ_GUEST_MODEL || "llama-3.1-8b-instant");
-      const model = options?.modelOverride || defaultModel;
+      // Model priority lists for resilient fallback
+      // Common Groq IDs: llama-3.3-70b-versatile, llama3-8b-8192, llama-3.1-8b-instant, gemma2-9b-it
+      const guestFallbacks = [
+        "llama3-8b-8192",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "gemma2-9b-it",
+      ];
+      const authFallbacks = [
+        "llama-3.3-70b-versatile",
+        "qwen-2.5-32b",
+        "openai/gpt-oss-20b",
+        "llama3-70b-8192",
+      ];
+
+      const primaryGuest = process.env.GROQ_GUEST_MODEL || process.env.GROQ_MODEL || "llama3-8b-8192";
+      const primaryAuth = process.env.GROQ_AUTH_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+
+      const chosenModel = options?.modelOverride || (isAuth ? primaryAuth : primaryGuest);
+      const fallbacks = (isAuth ? authFallbacks : guestFallbacks).filter((m) => m !== chosenModel);
 
       return streamOpenAICompatible(messages, system, {
         baseUrl: "https://api.groq.com/openai/v1/chat/completions",
         apiKey: process.env.GROQ_API_KEY,
-        model: model,
+        model: chosenModel,
+        fallbackModels: fallbacks,
       });
     }
     case "nara":
