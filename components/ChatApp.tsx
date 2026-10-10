@@ -43,6 +43,9 @@ export default function ChatApp() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [projectsModalOpen, setProjectsModalOpen] = useState(false);
 
+  // Authenticated Model selector state
+  const [selectedModel, setSelectedModel] = useState<string>("qwen/qwen3.8-27b");
+
   // Set initial sidebar open state based on screen size
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth >= 768) {
@@ -102,6 +105,8 @@ export default function ChatApp() {
       if (rawProj) setProjects(JSON.parse(rawProj));
       const savedActiveProj = localStorage.getItem(ACTIVE_PROJ_KEY);
       if (savedActiveProj) setActiveProjectId(savedActiveProj);
+      const savedModel = localStorage.getItem("tungston_member_model");
+      if (savedModel) setSelectedModel(savedModel);
     } catch {}
 
     fetch("/api/config")
@@ -129,6 +134,13 @@ export default function ChatApp() {
     () => (active ? active.messages.reduce((sum, m) => sum + estimateTokens(m.content), 0) : 0),
     [active]
   );
+
+  function handleSelectModel(m: string) {
+    setSelectedModel(m);
+    try {
+      localStorage.setItem("tungston_member_model", m);
+    } catch {}
+  }
 
   function handleSaveProjects(updated: Project[]) {
     setProjects(updated);
@@ -234,6 +246,7 @@ export default function ChatApp() {
         body: JSON.stringify({
           messages: history,
           projectContext: projectContext || undefined,
+          modelOverride: user ? selectedModel : undefined,
         }),
       });
       if (!res.body) throw new Error("No response stream");
@@ -326,9 +339,27 @@ export default function ChatApp() {
               <MenuIcon size={16} />
             </button>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[var(--color-base)]">
-                {user ? "GROQ: QWEN 27B / 120B (UNLOCKED)" : "GROQ: GPT-OSS 20B"}
-              </span>
+              {user ? (
+                <div className="flex items-center border-2 border-line bg-surface font-mono text-[10px] md:text-[11px] shadow-hard-sm">
+                  <span className="bg-accent px-1.5 py-0.5 font-bold uppercase text-line hidden sm:inline-block">
+                    MEMBER
+                  </span>
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => handleSelectModel(e.target.value)}
+                    className="bg-surface2 px-1.5 py-0.5 font-bold uppercase text-ink outline-none cursor-pointer hover:bg-surface border-l sm:border-l-0 border-line"
+                    title="Select model for signed-in tier"
+                  >
+                    <option value="qwen/qwen3.8-27b">QWEN 3.8 27B (DEFAULT)</option>
+                    <option value="openai/gpt-oss-120b">GPT-OSS 120B (FLAGSHIP)</option>
+                    <option value="openai/gpt-oss-20b">GPT-OSS 20B (TURBO)</option>
+                  </select>
+                </div>
+              ) : (
+                <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[var(--color-base)]">
+                  GROQ: GPT-OSS 20B (GUEST)
+                </span>
+              )}
 
               {activeProject ? (
                 <button

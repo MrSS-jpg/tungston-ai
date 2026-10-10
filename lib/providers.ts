@@ -200,12 +200,15 @@ export async function streamCompletion(
       ];
 
       const rawGuest = process.env.GROQ_GUEST_MODEL || process.env.GROQ_MODEL;
-      const rawAuth = process.env.GROQ_AUTH_MODEL || process.env.GROQ_MODEL;
+      const rawAuth = process.env.GROQ_AUTH_MODEL;
 
       const primaryGuest = sanitizeGroqModel(rawGuest, "openai/gpt-oss-20b");
       const primaryAuth = sanitizeGroqModel(rawAuth, "qwen/qwen3.8-27b");
 
-      const chosenModel = options?.modelOverride || (isAuth ? primaryAuth : primaryGuest);
+      // Guests are locked to guest tier; authenticated members can use custom modelOverride
+      const chosenModel = isAuth
+        ? (options?.modelOverride ? sanitizeGroqModel(options.modelOverride, primaryAuth) : primaryAuth)
+        : primaryGuest;
       const fallbacks = (isAuth ? authFallbacks : guestFallbacks).filter((m) => m !== chosenModel);
 
       return streamOpenAICompatible(messages, system, {
