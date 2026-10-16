@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tungston AI",
-  description: "A durable, long-context AI chat assistant.",
+  title: "Tungston AI — Durable Long-Context AI",
+  description: "A durable, long-context AI chat assistant built with brutalist clarity and BYOK flexibility.",
 };
 
 export const viewport: Viewport = {
@@ -23,7 +24,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased">{children}</body>
+      <body className="font-body antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

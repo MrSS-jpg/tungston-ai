@@ -10,6 +10,9 @@ import { MenuIcon, SunIcon, MoonIcon } from "./Icons";
 import { AuthModal } from "./AuthModal";
 import { ProjectsModal } from "./ProjectsModal";
 import { ByokModal, getStoredByok, type ByokConfig } from "./ByokModal";
+import { DeleteAccountModal } from "./DeleteAccountModal";
+import { OnboardingModal, ONBOARDING_STORAGE_KEY } from "./OnboardingModal";
+import { ToastProvider, useToast } from "./Toast";
 import { supabase } from "@/lib/supabase";
 import { estimateTokens } from "@/lib/estimateTokens";
 import type { Attachment, ChatMessage, Conversation, Project } from "@/lib/types";
@@ -48,7 +51,9 @@ const STARTER_PROMPTS = [
   },
 ];
 
-export default function ChatApp() {
+function ChatAppInner() {
+  const toast = useToast();
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [staged, setStaged] = useState<Attachment[]>([]);
@@ -61,6 +66,12 @@ export default function ChatApp() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<"signin" | "signup" | "reset" | "update-password">("signin");
+
+  // Account Deletion & Onboarding Modals
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+  const [onboardingModalOpen, setOnboardingModalOpen] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   // Projects state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -107,12 +118,32 @@ export default function ChatApp() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+
+      if (event === "PASSWORD_RECOVERY") {
+        setAuthModalTab("update-password");
+        setAuthModalOpen(true);
+        toast.info("Password recovery session activated. Please set your new password.");
+      } else if (event === "SIGNED_IN") {
+        toast.success(`Authenticated as ${session?.user?.email || "Member"}`);
+      } else if (event === "SIGNED_OUT") {
+        toast.info("Signed out of session.");
+      }
     });
 
     return () => subscription.unsubscribe();
+  }, [toast]);
+
+  // Check onboarding tour on first mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const onboarded = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!onboarded) {
+        setOnboardingModalOpen(true);
+      }
+    }
   }, []);
 
   // Load persisted conversations, projects, model selection + server config once on mount.
@@ -150,46 +181,40 @@ export default function ChatApp() {
       .catch(() => {});
   }, []);
 
+  // Save conversations to localStorage on change
   useEffect(() => {
-    if (conversations.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    if (!conversations.length) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
+    } catch (e) {
+      console.error("Failed to persist conversations:", e);
+    }
   }, [conversations]);
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [conversations, activeId]);
-
-  const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [conversations, activeId]);
+  const active = useMemo(
+    () => conversations.find((c) => c.id === activeId) ?? null,
+    [conversations, activeId]
+  );
 
   const activeProject = useMemo(
     () => projects.find((p) => p.id === activeProjectId) ?? null,
     [projects, activeProjectId]
   );
 
-  const contextUsed = useMemo(
-    () => (active ? active.messages.reduce((sum, m) => sum + estimateTokens(m.content), 0) : 0),
-    [active]
-  );
+  const contextUsed = useMemo(() => {
+    if (!active) return 0;
+    return active.messages.reduce(
+      (acc, m) => acc + estimateTokens(m.content) + (m.attachments?.length ? 500 : 0),
+      0
+    );
+  }, [active]);
 
-  function handleSelectModel(m: string) {
-    setSelectedModel(m);
-    try {
-      localStorage.setItem("tungston_member_model", m);
-    } catch {}
-  }
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [active?.messages, streaming]);
 
-  function handleSaveProjects(updated: Project[]) {
-    setProjects(updated);
-    localStorage.setItem(PROJECTS_KEY, JSON.stringify(updated));
-  }
-
-  function handleSelectProject(id: string | null) {
-    setActiveProjectId(id);
-    if (id) localStorage.setItem(ACTIVE_PROJ_KEY, id);
-    else localStorage.removeItem(ACTIVE_PROJ_KEY);
-  }
-
-  function updateConversation(id: string, fn: (c: Conversation) => Conversation) {
-    setConversations((prev) => prev.map((c) => (c.id === id ? fn(c) : c)));
+  function updateConversation(id: string, updater: (c: Conversation) => Conversation) {
+    setConversations((prev) => prev.map((c) => (c.id === id ? updater(c) : c)));
   }
 
   function newConversation() {
@@ -200,36 +225,78 @@ export default function ChatApp() {
 
   function deleteConversation(id: string) {
     setConversations((prev) => {
-      const next = prev.filter((c) => c.id !== id);
-      if (id === activeId) setActiveId(next[0]?.id ?? null);
-      return next.length ? next : [emptyConversation()];
+      const remaining = prev.filter((c) => c.id !== id);
+      if (remaining.length === 0) {
+        const fresh = emptyConversation();
+        setActiveId(fresh.id);
+        return [fresh];
+      }
+      if (activeId === id) {
+        setActiveId(remaining[0].id);
+      }
+      return remaining;
     });
+    toast.info("Conversation removed.");
+  }
+
+  function handleSelectProject(id: string | null) {
+    setActiveProjectId(id);
+    if (id) {
+      localStorage.setItem(ACTIVE_PROJ_KEY, id);
+      const p = projects.find((proj) => proj.id === id);
+      if (p) toast.success(`Active context: ${p.name}`);
+    } else {
+      localStorage.removeItem(ACTIVE_PROJ_KEY);
+      toast.info("Project context detached.");
+    }
+  }
+
+  function handleSaveProjects(newProjects: Project[]) {
+    setProjects(newProjects);
+    try {
+      localStorage.setItem(PROJECTS_KEY, JSON.stringify(newProjects));
+    } catch {}
+  }
+
+  function handleSelectModel(m: string) {
+    setSelectedModel(m);
+    try {
+      localStorage.setItem("tungston_member_model", m);
+      toast.info(`Switched model to ${m}`);
+    } catch {}
   }
 
   function handleClearAll() {
-    if (confirm("Clear all conversation history? This cannot be undone.")) {
-      const c = emptyConversation();
-      setConversations([c]);
-      setActiveId(c.id);
+    if (!confirm("Permanently wipe all conversation logs from this device?")) return;
+    const fresh = emptyConversation();
+    setConversations([fresh]);
+    setActiveId(fresh.id);
+    try {
       localStorage.removeItem(STORAGE_KEY);
-    }
+    } catch {}
+    toast.info("All conversations purged from browser.");
   }
 
   function handleExportChat() {
     if (!active || !active.messages.length) return;
-    const title = active.title || "Tungston Chat";
-    let md = `# ${title}\n*Exported from Tungston AI on ${new Date().toLocaleString()}*\n\n---\n\n`;
-    for (const m of active.messages) {
-      const speaker = m.role === "user" ? "USER" : "TUNGSTON AI";
-      md += `### ${speaker} (${new Date(m.createdAt).toLocaleTimeString()}):\n\n${m.content}\n\n---\n\n`;
-    }
-    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const lines = [
+      `# ${active.title || "Tungston AI Chat"}`,
+      `*Exported on ${new Date().toLocaleString()}*`,
+      "",
+    ];
+    active.messages.forEach((m) => {
+      lines.push(`### ${m.role.toUpperCase()}:`);
+      lines.push(m.content || "");
+      lines.push("");
+    });
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.md`;
+    a.download = `tungston-chat-${Date.now()}.md`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("Chat log exported as Markdown.");
   }
 
   function handleStop() {
@@ -249,8 +316,9 @@ export default function ChatApp() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Upload failed");
       setStaged((prev) => [...prev, ...json.attachments]);
+      toast.success(`Attached ${json.attachments.length} context file(s)`);
     } catch (err) {
-      alert((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setUploading(false);
     }
@@ -260,6 +328,23 @@ export default function ChatApp() {
     setStaged((prev) => prev.filter((a) => a.id !== id));
   }
 
+  async function handleResendVerification() {
+    if (!user?.email || resendingEmail) return;
+    setResendingEmail(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: user.email,
+      });
+      if (error) throw error;
+      toast.success(`Verification email dispatched to ${user.email}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resend verification email.");
+    } finally {
+      setResendingEmail(false);
+    }
+  }
+
   async function sendMessage(text: string, isRetry = false) {
     if (!active) return;
     setRateLimitBanner(null);
@@ -267,7 +352,6 @@ export default function ChatApp() {
 
     let historyMessages = [...active.messages];
     if (isRetry) {
-      // Remove trailing assistant message if regenerating
       if (historyMessages[historyMessages.length - 1]?.role === "assistant") {
         historyMessages.pop();
       }
@@ -300,48 +384,46 @@ export default function ChatApp() {
         attachments: m.attachments?.map((a) => ({ mimeType: a.mimeType, fileUri: a.fileUri, dataUrl: a.dataUrl })),
       }));
 
-      // Assemble project context if an active project is set
-      let projectContext = "";
-      if (activeProject && activeProject.files.length) {
-        projectContext =
-          `PROJECT NAME: ${activeProject.name}\n` +
-          activeProject.files
-            .map(
-              (f) =>
-                `--- FILE: ${f.name} ---\n${f.content}\n--- END OF ${f.name} ---`
-            )
-            .join("\n\n");
+      let projectContextText = "";
+      if (activeProject && activeProject.files.length > 0) {
+        projectContextText = `PROJECT NAME: ${activeProject.name}\n` +
+          activeProject.files.map((f) => `--- FILE: ${f.name} ---\n${f.content}`).join("\n\n");
       }
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (session?.access_token) {
         headers["Authorization"] = `Bearer ${session.access_token}`;
       }
       if (byokConfig.key) {
         headers["x-byok-key"] = byokConfig.key;
-        headers["x-byok-provider"] = byokConfig.provider || "groq";
+        headers["x-byok-provider"] = byokConfig.provider;
+        if (byokConfig.model) headers["x-byok-model"] = byokConfig.model;
       }
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers,
-        signal: controller.signal,
         body: JSON.stringify({
           messages: history,
-          projectContext: projectContext || undefined,
-          modelOverride: byokConfig.model || (user ? selectedModel : undefined),
+          selectedModel: user ? selectedModel : undefined,
+          projectContext: projectContextText || undefined,
         }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
-        const errorJson = await res.json().catch(() => null);
-        const errMsg = errorJson?.error || `Server returned ${res.status}`;
+        let errJson: any = null;
+        try {
+          errJson = await res.json();
+        } catch {}
+
         if (res.status === 429) {
-          setRateLimitBanner(errMsg);
+          const limitMsg = errJson?.error || "Hourly limit reached. Switch to BYOK key in the top bar to continue.";
+          setRateLimitBanner(limitMsg);
+          toast.warning(limitMsg);
+          throw new Error(limitMsg);
         }
-        throw new Error(errMsg);
+        throw new Error(errJson?.error || `Server responded with ${res.status}`);
       }
 
       if (!res.body) throw new Error("No response stream");
@@ -411,20 +493,22 @@ export default function ChatApp() {
         ...c,
         messages: c.messages.map((m) => (m.id === assistantMsg.id ? { ...m, pending: false, images: json.images } : m)),
       }));
+      toast.success("Image generated.");
     } catch (err) {
       updateConversation(convoId, (c) => ({
         ...c,
         messages: c.messages.map((m) =>
-          m.id === assistantMsg.id ? { ...m, pending: false, content: `Couldn't generate that: ${(err as Error).message}` } : m
+          m.id === assistantMsg.id ? { ...m, pending: false, content: `Couldn't generate image: ${(err as Error).message}` } : m
         ),
       }));
+      toast.error((err as Error).message);
     } finally {
       setStreaming(false);
     }
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-base text-ink relative">
+    <div className="flex h-screen overflow-hidden bg-base text-ink relative font-mono">
       <Sidebar
         conversations={conversations}
         activeId={activeId}
@@ -436,21 +520,43 @@ export default function ChatApp() {
         activeProject={activeProject}
         onOpenProjects={() => setProjectsModalOpen(true)}
         user={user}
-        onOpenAuth={() => setAuthModalOpen(true)}
+        onOpenAuth={() => {
+          setAuthModalTab("signin");
+          setAuthModalOpen(true);
+        }}
         onSignOut={() => supabase.auth.signOut()}
         onOpenByok={() => setByokModalOpen(true)}
         byokActive={Boolean(byokConfig.key)}
         onExportChat={handleExportChat}
         onClearAll={handleClearAll}
+        onOpenDeleteAccount={() => setDeleteAccountModalOpen(true)}
+        onOpenOnboarding={() => setOnboardingModalOpen(true)}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
+        {/* Unconfirmed Email Notice Banner */}
+        {user && !user.email_confirmed_at && (
+          <div className="border-b-2 border-line bg-[#FFA85C]/20 px-3 py-2 flex items-center justify-between text-xs font-mono text-ink shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-accent font-bold">⚠️ UNVERIFIED:</span>
+              <span className="text-ink/90 hidden sm:inline">Please confirm your email address ({user.email}).</span>
+            </div>
+            <button
+              onClick={handleResendVerification}
+              disabled={resendingEmail}
+              className="border border-line bg-surface px-2.5 py-1 text-[10px] font-bold uppercase text-ink hover:bg-accent hover:text-line transition-colors disabled:opacity-50"
+            >
+              {resendingEmail ? "Transmitting..." : "Resend Link ✉️"}
+            </button>
+          </div>
+        )}
+
         <header className="flex items-center justify-between border-b-2 border-line bg-surface px-3 py-2.5 md:px-8 md:py-3 font-mono">
           <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle sidebar"
-              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
+              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors"
             >
               <MenuIcon size={16} />
             </button>
@@ -515,7 +621,10 @@ export default function ChatApp() {
             )}
             {!user && (
               <button
-                onClick={() => setAuthModalOpen(true)}
+                onClick={() => {
+                  setAuthModalTab("signin");
+                  setAuthModalOpen(true);
+                }}
                 className="hidden sm:inline-block border-2 border-line bg-accent px-2.5 py-1 font-mono text-[10px] md:text-xs font-bold uppercase text-line shadow-hard-sm"
               >
                 Sign In ↗
@@ -524,7 +633,7 @@ export default function ChatApp() {
             <button
               onClick={() => setIsLightMode(!isLightMode)}
               aria-label="Toggle theme"
-              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line"
+              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors"
             >
               {isLightMode ? <MoonIcon size={15} /> : <SunIcon size={15} />}
             </button>
@@ -534,7 +643,7 @@ export default function ChatApp() {
 
         {/* Rate Limit Banner */}
         {rateLimitBanner && (
-          <div className="border-b-2 border-line bg-surface2 px-4 py-2 font-mono text-xs flex items-center justify-between text-ink">
+          <div className="border-b-2 border-line bg-surface2 px-4 py-2 font-mono text-xs flex items-center justify-between text-ink shrink-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-danger">⚠️ RATE LIMIT:</span>
               <span>{rateLimitBanner}</span>
@@ -614,7 +723,11 @@ export default function ChatApp() {
       <AuthModal
         open={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        onSuccess={() => {}}
+        initialTab={authModalTab}
+        onSuccess={() => {
+          setAuthModalOpen(false);
+          toast.success("Authentication confirmed.");
+        }}
       />
 
       {/* Projects Context Modal */}
@@ -633,6 +746,39 @@ export default function ChatApp() {
         onClose={() => setByokModalOpen(false)}
         onSave={(cfg) => setByokConfig(cfg)}
       />
+
+      {/* Account Deletion Modal */}
+      <DeleteAccountModal
+        open={deleteAccountModalOpen}
+        onClose={() => setDeleteAccountModalOpen(false)}
+        onDeleted={() => {
+          setUser(null);
+          setSession(null);
+          const c = emptyConversation();
+          setConversations([c]);
+          setActiveId(c.id);
+          toast.warning("Account credentials and local state have been permanently purged.");
+        }}
+      />
+
+      {/* First-Time Onboarding Tour Modal */}
+      <OnboardingModal
+        open={onboardingModalOpen}
+        onClose={() => setOnboardingModalOpen(false)}
+        onOpenAuth={() => {
+          setAuthModalTab("signup");
+          setAuthModalOpen(true);
+        }}
+        onOpenByok={() => setByokModalOpen(true)}
+      />
     </div>
+  );
+}
+
+export default function ChatApp() {
+  return (
+    <ToastProvider>
+      <ChatAppInner />
+    </ToastProvider>
   );
 }

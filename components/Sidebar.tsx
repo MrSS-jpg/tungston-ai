@@ -20,6 +20,8 @@ export function Sidebar({
   byokActive,
   onExportChat,
   onClearAll,
+  onOpenDeleteAccount,
+  onOpenOnboarding,
 }: {
   conversations: Conversation[];
   activeId: string | null;
@@ -37,6 +39,8 @@ export function Sidebar({
   byokActive: boolean;
   onExportChat?: () => void;
   onClearAll?: () => void;
+  onOpenDeleteAccount?: () => void;
+  onOpenOnboarding?: () => void;
 }) {
   const activeConvo = conversations.find((c) => c.id === activeId);
   const hasMessages = Boolean(activeConvo && activeConvo.messages.length > 0);
@@ -135,37 +139,48 @@ export function Sidebar({
         </div>
 
         <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
-          {conversations.map((c) => (
-            <div key={c.id} className="group relative">
-              <button
-                onClick={() => {
-                  onSelect(c.id);
-                  if (typeof window !== "undefined" && window.innerWidth < 768) {
-                    onClose();
-                  }
-                }}
-                className={`w-full truncate border-2 px-3 py-2 pr-8 text-left font-mono text-sm ${
-                  c.id === activeId
-                    ? "border-line bg-ink font-bold text-[var(--color-base)] shadow-hard-sm"
-                    : "border-transparent text-muted hover:border-line hover:bg-surface2 hover:text-ink"
-                }`}
-              >
-                {c.title || "New chat"}
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(c.id);
-                }}
-                aria-label="Delete conversation"
-                className={`absolute right-1.5 top-2.5 p-1 ${
-                  c.id === activeId ? "text-[var(--color-base)] hover:text-danger" : "text-muted hover:text-danger"
-                } md:hidden md:group-hover:block`}
-              >
-                <CloseIcon size={11} />
-              </button>
+          {conversations.length === 0 ? (
+            <div className="my-auto border-2 border-dashed border-line/40 p-4 text-center">
+              <span className="block font-mono text-xs font-bold uppercase text-ink/80 mb-1">
+                No Chat Logs
+              </span>
+              <p className="font-mono text-[10px] text-muted leading-relaxed">
+                Start a fresh session above or pick a starter prompt from the workbench.
+              </p>
             </div>
-          ))}
+          ) : (
+            conversations.map((c) => (
+              <div key={c.id} className="group relative">
+                <button
+                  onClick={() => {
+                    onSelect(c.id);
+                    if (typeof window !== "undefined" && window.innerWidth < 768) {
+                      onClose();
+                    }
+                  }}
+                  className={`w-full truncate border-2 px-3 py-2 pr-8 text-left font-mono text-sm ${
+                    c.id === activeId
+                      ? "border-line bg-ink font-bold text-[var(--color-base)] shadow-hard-sm"
+                      : "border-transparent text-muted hover:border-line hover:bg-surface2 hover:text-ink"
+                  }`}
+                >
+                  {c.title || "New chat"}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(c.id);
+                  }}
+                  aria-label="Delete conversation"
+                  className={`absolute right-1.5 top-2.5 p-1 ${
+                    c.id === activeId ? "text-[var(--color-base)] hover:text-danger" : "text-muted hover:text-danger"
+                  } md:hidden md:group-hover:block`}
+                >
+                  <CloseIcon size={11} />
+                </button>
+              </div>
+            ))
+          )}
         </nav>
 
         {/* BYOK and User / Auth Footer */}
@@ -199,12 +214,23 @@ export function Sidebar({
                   27B UNLOCKED
                 </span>
               </div>
-              <button
-                onClick={onSignOut}
-                className="w-full border border-line bg-surface2 py-1 text-center text-[10px] font-bold uppercase text-muted hover:bg-danger hover:text-white"
-              >
-                Sign Out
-              </button>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={onSignOut}
+                  className="flex-1 border border-line bg-surface2 py-1 text-center text-[10px] font-bold uppercase text-muted hover:bg-surface hover:text-ink transition-colors"
+                >
+                  Sign Out
+                </button>
+                {onOpenDeleteAccount && (
+                  <button
+                    onClick={onOpenDeleteAccount}
+                    className="border border-line bg-surface2 px-2 py-1 text-center text-[10px] font-bold uppercase text-muted hover:bg-danger hover:text-white transition-colors"
+                    title="Permanently purge account and data"
+                  >
+                    Purge
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -220,6 +246,27 @@ export function Sidebar({
               </button>
             </div>
           )}
+
+          {/* Static Legal Links & Guide Button */}
+          <div className="pt-2 border-t border-line/40 flex items-center justify-between text-[10px] text-muted">
+            {onOpenOnboarding && (
+              <button
+                onClick={onOpenOnboarding}
+                className="hover:text-accent font-bold uppercase flex items-center gap-1 transition-colors"
+              >
+                ❓ Tour
+              </button>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              <a href="/privacy" className="hover:text-accent underline transition-colors">
+                Privacy
+              </a>
+              <span>•</span>
+              <a href="/terms" className="hover:text-accent underline transition-colors">
+                Terms
+              </a>
+            </div>
+          </div>
         </div>
       </aside>
     </>
