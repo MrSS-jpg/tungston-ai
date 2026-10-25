@@ -49,7 +49,7 @@ const REAL_WORLD_TEMPLATES = [
   {
     category: "Cooking & Groceries",
     icon: "🍳",
-    title: "The 'What's In My Fridge?' Meal Planner",
+    title: "The 'What's In My Fridge?' Chef",
     description: "Turn random leftover ingredients into a hot meal without ordering takeout.",
     prompt:
       "Act as a creative home chef. Plan a simple, comforting dinner recipe for 2 people. Context: I only have 3 eggs, half an onion, leftover cooked rice, soy sauce, and a handful of spinach. I have basic spices, butter, and oil. Rules: 15-minute cook time, numbered step-by-step instructions, and zero specialty equipment.",
@@ -91,36 +91,36 @@ const REAL_WORLD_TEMPLATES = [
 // Interactive Quiz Questions
 const QUIZ_CHALLENGES = [
   {
-    question: "Scenario: You want an email asking your landlord to fix a leaky faucet.",
+    question: "Scenario: You want an email asking your landlord to fix a leaky faucet in your bathroom.",
     optionA: {
       text: "Prompt A: 'Write an email to my landlord to fix my sink.'",
       verdict: "BAD PROMPT (Generic Slop)",
       reason:
-        "The AI doesn't know your unit number, how long it's been leaking, or the urgency. It will generate a vague template you still have to manually rewrite.",
+        "The AI doesn't know your apartment number, urgency, or when you are home. It produces a generic template you have to manually rewrite.",
       correct: false,
     },
     optionB: {
-      text: "Prompt B: 'Act as a respectful tenant. Draft a 70-word email to my landlord asking to repair a leaking bathroom faucet in Apt 4B that has been dripping for 3 days. Mention I will be home on Thursday between 2-5 PM for maintenance.'",
+      text: "Prompt B: 'Act as a respectful tenant. Draft a 70-word email to my landlord asking to repair a leaking bathroom faucet in Apt 4B that has been dripping for 3 days. Mention I am available Thursday between 2-5 PM.'",
       verdict: "GOLD PROMPT (Ready to Send)",
       reason:
-        "Provides Role, Task, Context (Apt 4B, 3 days), and Rules (70 words, specific availability). The result requires zero editing!",
+        "Provides Role, Task, Context (Apt 4B, 3 days), and Rules (70 words, specific availability). Requires zero editing!",
       correct: true,
     },
   },
   {
-    question: "Scenario: You want ideas for a weekend day trip on a tight budget.",
+    question: "Scenario: You want realistic ideas for a Saturday day trip on a tight $35 budget.",
     optionA: {
-      text: "Prompt A: 'Give me a 1-day budget itinerary for Austin, Texas under $35 total. Include free public parks, a cheap local food truck taco spot, and free parking advice. Group activities geographically so I don't waste gas driving across town.'",
+      text: "Prompt A: 'Give me a 1-day budget itinerary for Austin, Texas under $35 total. Include free public parks, a cheap local food truck taco spot, and free parking advice. Group activities geographically so I don't waste gas driving.'",
       verdict: "GOLD PROMPT (Practical & Local)",
       reason:
-        "Specifies exact budget ($35), location, meal preference, logistics (free parking, fuel savings), and geographic clustering.",
+        "Specifies budget ($35), city, meal preference, logistics (free parking, fuel savings), and geographic clustering.",
       correct: true,
     },
     optionB: {
       text: "Prompt B: 'What can I do this weekend for fun?'",
       verdict: "BAD PROMPT (Total Guesswork)",
       reason:
-        "The AI doesn't know where you live, your budget, whether you have a car, or what you enjoy. It will list generic tourist traps.",
+        "The AI doesn't know where you live, your budget, whether you have a car, or what you enjoy. It generates generic tourist traps.",
       correct: false,
     },
   },
@@ -132,13 +132,14 @@ export default function LearnPage() {
   const [selectedTask, setSelectedTask] = useState(TASKS[0].value);
   const [selectedContext, setSelectedContext] = useState(CONTEXTS[0].value);
   const [selectedRules, setSelectedRules] = useState(RULES[0].value);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   // Live Chat Simulator state
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
     {
       role: "assistant",
       content:
-        "👋 **Welcome! I am your Tungston Everyday AI Guide.**\n\nI am here to help you get real, practical everyday tasks done in seconds — from polite refund emails to meal plans and plain-English translations.\n\n👇 **Try clicking one of the templates above, or type any daily problem in the box below!**",
+        "👋 **Welcome! I am your Tungston Everyday AI Guide.**\n\nI am here to help you get real, practical daily tasks done in seconds — from polite refund emails to 15-minute dinners and plain-English letter decoders.\n\n👇 **Try clicking one of the templates above, or type any daily problem in the box below!**",
     },
   ]);
   const [inputVal, setInputVal] = useState("");
@@ -171,12 +172,18 @@ export default function LearnPage() {
     }
   }, []);
 
-  // Auto-scroll chat
+  // Auto-scroll chat on new messages
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
   const assembledPrompt = `${selectedRole}. ${selectedTask}. Context: ${selectedContext} Rules: ${selectedRules}`;
+
+  const handleCopyPrompt = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedPrompt(true);
+    setTimeout(() => setCopiedPrompt(false), 2000);
+  };
 
   const handleSaveByok = (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,6 +204,12 @@ export default function LearnPage() {
 
   const handleSendPrompt = async (promptToSend: string) => {
     if (!promptToSend.trim() || isLoading) return;
+
+    // Immediately smooth-scroll to simulator so user sees the progress
+    const simulatorEl = document.getElementById("ai-simulator");
+    if (simulatorEl) {
+      simulatorEl.scrollIntoView({ behavior: "smooth" });
+    }
 
     setErrorMsg(null);
     const userMessage = { role: "user" as const, content: promptToSend.trim() };
@@ -264,96 +277,96 @@ export default function LearnPage() {
   };
 
   return (
-    <div className="min-h-screen bg-base text-ink font-mono selection:bg-accent selection:text-base flex flex-col">
+    <div className="min-h-screen bg-base text-ink font-mono selection:bg-accent selection:text-base flex flex-col antialiased">
       {/* Top Brutalist Navigation Bar */}
-      <header className="border-b-2 border-line bg-surface sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+      <header className="border-b-2 border-line bg-surface sticky top-0 z-30 shadow-hard-sm">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/"
-              className="flex items-center gap-2 font-display text-sm md:text-base uppercase tracking-tight hover:text-accent transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 font-display text-sm md:text-base uppercase tracking-tight hover:text-accent transition-colors"
             >
-              <span className="grid h-7 w-7 place-items-center border-2 border-line bg-accent text-line font-black">
+              <span className="grid h-6 w-6 sm:h-7 sm:w-7 place-items-center border-2 border-line bg-accent text-line font-black text-xs sm:text-sm">
                 74
               </span>
               <span>TUNGSTON</span>
             </Link>
             <span className="text-muted text-xs hidden sm:inline">/</span>
-            <span className="border border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold uppercase text-accent tracking-wider">
-              EVERYDAY AI GUIDE
+            <span className="border border-line bg-surface2 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase text-accent tracking-wider">
+              EVERYDAY AI
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={() => setByokModalOpen(true)}
-              className={`border-2 border-line px-2.5 py-1 text-[11px] font-bold uppercase transition-colors shadow-hard-sm ${
+              className={`border-2 border-line px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-colors shadow-hard-sm ${
                 byokSaved
                   ? "bg-accent text-line"
                   : "bg-surface2 text-ink hover:bg-surface hover:text-accent"
               }`}
               title="Configure Bring-Your-Own-Key"
             >
-              🔑 {byokSaved ? "BYOK KEY: ACTIVE" : "BYOK: FREE TIER"}
+              🔑 {byokSaved ? "BYOK ACTIVE" : "BYOK"}
             </button>
 
             <a
               href="https://tungston-tester.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="border-2 border-line bg-surface2 px-2.5 py-1 text-[11px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors shadow-hard-sm"
+              className="border-2 border-line bg-surface2 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors shadow-hard-sm"
             >
-              🛠️ DEV TOOLS ↗
+              🛠️ TOOLS ↗
             </a>
 
             <Link
               href="/"
-              className="border-2 border-line bg-accent px-3 py-1 text-[11px] font-bold uppercase text-line hover:bg-accent/90 transition-colors shadow-hard-sm"
+              className="border-2 border-line bg-accent px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-bold uppercase text-line hover:bg-accent/90 transition-colors shadow-hard-sm"
             >
-              CHAT WORKBENCH ↗
+              CHAT ↗
             </Link>
           </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 py-8 flex-1 space-y-12">
+      <main className="max-w-6xl mx-auto px-4 py-8 flex-1 space-y-10 sm:space-y-12">
         {/* Hero Section */}
-        <section className="border-2 border-line bg-surface p-6 md:p-8 shadow-hard relative overflow-hidden">
-          <div className="absolute right-0 top-0 translate-x-12 -translate-y-8 font-display text-9xl text-surface2/30 select-none pointer-events-none">
+        <section className="border-2 border-line bg-surface p-5 sm:p-8 shadow-hard relative overflow-hidden">
+          <div className="hidden sm:block absolute right-4 top-2 font-display text-8xl md:text-9xl text-surface2/15 select-none pointer-events-none">
             74
           </div>
 
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 border border-line bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent uppercase">
+          <div className="relative z-10 max-w-3xl space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center gap-1.5 border border-line bg-accent/10 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold text-accent uppercase">
               <span>●</span> ZERO JARGON. ZERO INTIMIDATION. 100% PRACTICAL.
             </div>
 
             <h1 className="font-display text-2xl sm:text-3xl md:text-5xl uppercase tracking-tight leading-tight">
               Stop Being Intimidated By AI. <br />
-              <span className="text-accent underline decoration-line decoration-4">
+              <span className="text-accent underline decoration-accent decoration-2 sm:decoration-4 underline-offset-4">
                 Use It For Real Daily Life.
               </span>
             </h1>
 
-            <p className="text-sm md:text-base text-ink/90 leading-relaxed font-body">
-              You do <strong>not</strong> need a computer science degree, math skills, or weird tech
+            <p className="text-xs sm:text-sm md:text-base text-ink/90 leading-relaxed font-body">
+              You do <strong>not</strong> need a computer science degree, math skills, or tech
               buzzwords. AI is simply a patient, tireless helper that speaks normal human English. Once you know
               the <strong>4 simple ingredients</strong>, you can write difficult emails, plan meals from whatever is
               left in your fridge, and translate confusing letters in 10 seconds.
             </p>
 
-            <div className="pt-2 flex flex-wrap gap-2 text-xs font-bold uppercase">
-              <span className="border border-line bg-surface2 px-2 py-1 text-muted">
-                ⚡ Instant Edge Speed
+            <div className="pt-1 flex flex-wrap gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold uppercase">
+              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
+                ⚡ Edge Speed
               </span>
-              <span className="border border-line bg-surface2 px-2 py-1 text-muted">
+              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
                 📱 Mobile & Desktop
               </span>
-              <span className="border border-line bg-surface2 px-2 py-1 text-muted">
+              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
                 🛡️ Zero Data Retention
               </span>
-              <span className="border border-line bg-surface2 px-2 py-1 text-muted">
+              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
                 💸 100% Free Shared Access
               </span>
             </div>
@@ -361,17 +374,17 @@ export default function LearnPage() {
         </section>
 
         {/* Section 1: The Golden Formula (The 4-Piece Puzzle) */}
-        <section className="border-2 border-line bg-surface p-6 shadow-hard space-y-6">
+        <section className="border-2 border-line bg-surface p-5 sm:p-6 shadow-hard space-y-6">
           <div className="border-b-2 border-line pb-4 flex flex-col md:flex-row md:items-end justify-between gap-2">
             <div>
               <span className="text-xs font-bold uppercase text-accent tracking-wider block mb-1">
                 RULE #1 // THE PROMPT BLUEPRINT
               </span>
-              <h2 className="font-display text-xl md:text-2xl uppercase">
+              <h2 className="font-display text-lg sm:text-xl md:text-2xl uppercase">
                 The 4-Piece Puzzle of Great Prompts
               </h2>
             </div>
-            <p className="text-xs text-muted max-w-md">
+            <p className="text-xs text-muted max-w-md leading-relaxed">
               Whenever everyday people get robotic, useless answers from AI, it is because they only gave 1 piece of the puzzle. Give all 4 pieces and the answer is pure gold.
             </p>
           </div>
@@ -381,32 +394,35 @@ export default function LearnPage() {
             {/* Box 1: Role */}
             <div className="border-2 border-line bg-surface2 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-accent">1. WHO IS IT? (Role)</span>
-                <span className="text-[10px] text-muted">Who does it pretend to be?</span>
+                <span className="text-xs font-bold uppercase text-accent flex items-center gap-1.5">
+                  <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">1</span>
+                  WHO IS IT? (Role)
+                </span>
+                <span className="text-[10px] text-muted">Persona / Job</span>
               </div>
               <p className="text-xs text-ink/80">
-                Tell the AI its job or personality. An &quot;Italian Grandma Cook&quot; answers differently than a &quot;Corporate Chef&quot;.
+                Tell the AI its personality. An &quot;Italian Grandma Cook&quot; answers differently than a &quot;Corporate Chef&quot;.
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {ROLES.map((r) => (
                   <button
                     key={r.label}
                     onClick={() => setSelectedRole(r.value)}
-                    className={`border px-2 py-1 text-[11px] font-bold uppercase transition-all ${
+                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedRole === r.value
-                        ? "border-line bg-accent text-line shadow-hard-sm"
-                        : "border-line bg-surface text-muted hover:text-ink hover:border-accent"
+                        ? "border-line bg-accent text-line font-black shadow-hard-sm"
+                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
                     }`}
                   >
-                    {r.label}
+                    {selectedRole === r.value ? "✓ " : ""}{r.label}
                   </button>
                 ))}
               </div>
-              <input
-                type="text"
+              <textarea
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full border-2 border-line bg-base px-3 py-1.5 text-xs text-ink focus:border-accent"
+                rows={2}
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
                 placeholder="Or type a custom role..."
               />
             </div>
@@ -414,32 +430,35 @@ export default function LearnPage() {
             {/* Box 2: Task */}
             <div className="border-2 border-line bg-surface2 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-accent">2. WHAT SHOULD IT DO? (Task)</span>
+                <span className="text-xs font-bold uppercase text-accent flex items-center gap-1.5">
+                  <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">2</span>
+                  WHAT SHOULD IT DO? (Task)
+                </span>
                 <span className="text-[10px] text-muted">The exact mission</span>
               </div>
               <p className="text-xs text-ink/80">
-                Be specific. Don&apos;t say &quot;Help me with food&quot; — say &quot;Draft a 3-step recipe using leftover chicken&quot;.
+                Be specific. Don&apos;t say &quot;Help me with dinner&quot; — say &quot;Draft a 3-step recipe using leftover rice&quot;.
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {TASKS.map((t) => (
                   <button
                     key={t.label}
                     onClick={() => setSelectedTask(t.value)}
-                    className={`border px-2 py-1 text-[11px] font-bold uppercase transition-all ${
+                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedTask === t.value
-                        ? "border-line bg-accent text-line shadow-hard-sm"
-                        : "border-line bg-surface text-muted hover:text-ink hover:border-accent"
+                        ? "border-line bg-accent text-line font-black shadow-hard-sm"
+                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
                     }`}
                   >
-                    {t.label}
+                    {selectedTask === t.value ? "✓ " : ""}{t.label}
                   </button>
                 ))}
               </div>
-              <input
-                type="text"
+              <textarea
                 value={selectedTask}
                 onChange={(e) => setSelectedTask(e.target.value)}
-                className="w-full border-2 border-line bg-base px-3 py-1.5 text-xs text-ink focus:border-accent"
+                rows={2}
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
                 placeholder="Or type a custom task..."
               />
             </div>
@@ -447,7 +466,10 @@ export default function LearnPage() {
             {/* Box 3: Context */}
             <div className="border-2 border-line bg-surface2 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-accent">3. WHAT IS THE SITUATION? (Context)</span>
+                <span className="text-xs font-bold uppercase text-accent flex items-center gap-1.5">
+                  <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">3</span>
+                  SITUATION (Context)
+                </span>
                 <span className="text-[10px] text-muted">Your real-life facts</span>
               </div>
               <p className="text-xs text-ink/80">
@@ -458,21 +480,21 @@ export default function LearnPage() {
                   <button
                     key={c.label}
                     onClick={() => setSelectedContext(c.value)}
-                    className={`border px-2 py-1 text-[11px] font-bold uppercase transition-all ${
+                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedContext === c.value
-                        ? "border-line bg-accent text-line shadow-hard-sm"
-                        : "border-line bg-surface text-muted hover:text-ink hover:border-accent"
+                        ? "border-line bg-accent text-line font-black shadow-hard-sm"
+                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
                     }`}
                   >
-                    {c.label}
+                    {selectedContext === c.value ? "✓ " : ""}{c.label}
                   </button>
                 ))}
               </div>
-              <input
-                type="text"
+              <textarea
                 value={selectedContext}
                 onChange={(e) => setSelectedContext(e.target.value)}
-                className="w-full border-2 border-line bg-base px-3 py-1.5 text-xs text-ink focus:border-accent"
+                rows={2}
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
                 placeholder="Or type your specific facts..."
               />
             </div>
@@ -480,8 +502,11 @@ export default function LearnPage() {
             {/* Box 4: Rules & Tone */}
             <div className="border-2 border-line bg-surface2 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-accent">4. HOW SHOULD IT SAY IT? (Rules)</span>
-                <span className="text-[10px] text-muted">Length, tone & constraints</span>
+                <span className="text-xs font-bold uppercase text-accent flex items-center gap-1.5">
+                  <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">4</span>
+                  HOW TO SAY IT? (Rules)
+                </span>
+                <span className="text-[10px] text-muted">Length & Tone</span>
               </div>
               <p className="text-xs text-ink/80">
                 Prevent walls of text! Set boundaries like &quot;Under 100 words&quot; or &quot;No corporate buzzwords&quot;.
@@ -491,33 +516,41 @@ export default function LearnPage() {
                   <button
                     key={ru.label}
                     onClick={() => setSelectedRules(ru.value)}
-                    className={`border px-2 py-1 text-[11px] font-bold uppercase transition-all ${
+                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedRules === ru.value
-                        ? "border-line bg-accent text-line shadow-hard-sm"
-                        : "border-line bg-surface text-muted hover:text-ink hover:border-accent"
+                        ? "border-line bg-accent text-line font-black shadow-hard-sm"
+                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
                     }`}
                   >
-                    {ru.label}
+                    {selectedRules === ru.value ? "✓ " : ""}{ru.label}
                   </button>
                 ))}
               </div>
-              <input
-                type="text"
+              <textarea
                 value={selectedRules}
                 onChange={(e) => setSelectedRules(e.target.value)}
-                className="w-full border-2 border-line bg-base px-3 py-1.5 text-xs text-ink focus:border-accent"
+                rows={2}
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
                 placeholder="Or type custom rules..."
               />
             </div>
           </div>
 
           {/* Live Assembled Prompt Preview */}
-          <div className="border-2 border-line bg-base p-4 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="border-2 border-line bg-base p-4 space-y-3 shadow-hard-sm">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <span className="text-xs font-bold uppercase text-accent flex items-center gap-1.5">
                 <span>⚡</span> LIVE ASSEMBLED PROMPT
               </span>
-              <span className="text-[10px] text-muted font-bold uppercase">Ready to test</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleCopyPrompt(assembledPrompt)}
+                  className="border border-line bg-surface px-2 py-0.5 text-[10px] font-bold uppercase text-ink hover:text-accent"
+                >
+                  {copiedPrompt ? "✓ COPIED" : "COPY PROMPT"}
+                </button>
+                <span className="text-[10px] text-muted font-bold uppercase">Ready to test</span>
+              </div>
             </div>
 
             <div className="border border-line bg-surface p-3 font-mono text-xs md:text-sm text-ink leading-relaxed break-words">
@@ -540,18 +573,18 @@ export default function LearnPage() {
         </section>
 
         {/* Section 2: Real-World Daily Task Templates */}
-        <section className="border-2 border-line bg-surface p-6 shadow-hard space-y-6">
+        <section className="border-2 border-line bg-surface p-5 sm:p-6 shadow-hard space-y-6">
           <div className="border-b-2 border-line pb-4 flex flex-col md:flex-row md:items-end justify-between gap-2">
             <div>
               <span className="text-xs font-bold uppercase text-accent tracking-wider block mb-1">
                 1-CLICK BLUEPRINTS // SOLVE REAL PROBLEMS
               </span>
-              <h2 className="font-display text-xl md:text-2xl uppercase">
+              <h2 className="font-display text-lg sm:text-xl md:text-2xl uppercase">
                 6 Everyday Superpowers You Can Use Right Now
               </h2>
             </div>
-            <p className="text-xs text-muted max-w-md">
-              Tap &quot;Load Into Simulator&quot; on any card below to see the AI solve a real headache in seconds.
+            <p className="text-xs text-muted max-w-md leading-relaxed">
+              Tap &quot;Run Now&quot; on any card below to solve a real daily headache in seconds.
             </p>
           </div>
 
@@ -569,11 +602,11 @@ export default function LearnPage() {
                     </span>
                   </div>
                   <h3 className="font-display text-sm md:text-base uppercase text-ink">{tpl.title}</h3>
-                  <p className="text-xs text-muted leading-relaxed">{tpl.description}</p>
+                  <p className="text-xs text-ink/80 leading-relaxed">{tpl.description}</p>
                 </div>
 
                 <div className="space-y-3 pt-2 border-t border-line/40">
-                  <div className="bg-base border border-line p-2 text-[11px] text-ink/80 line-clamp-3 font-mono">
+                  <div className="bg-base border border-line p-2 text-[11px] text-ink/80 line-clamp-3 font-mono leading-relaxed">
                     {tpl.prompt}
                   </div>
 
@@ -582,7 +615,7 @@ export default function LearnPage() {
                       onClick={() => loadScenarioIntoSimulator(tpl.prompt)}
                       className="flex-1 border-2 border-line bg-surface hover:bg-accent hover:text-line py-1.5 text-center text-[10px] font-bold uppercase transition-colors"
                     >
-                      ✏️ Edit Prompt
+                      ✏️ Tweak
                     </button>
                     <button
                       onClick={() => handleSendPrompt(tpl.prompt)}
@@ -599,13 +632,13 @@ export default function LearnPage() {
         </section>
 
         {/* Section 3: Live Interactive AI Simulator */}
-        <section id="ai-simulator" className="border-2 border-line bg-surface p-6 shadow-hard space-y-4">
+        <section id="ai-simulator" className="border-2 border-line bg-surface p-5 sm:p-6 shadow-hard space-y-4">
           <div className="border-b-2 border-line pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-xs font-bold uppercase text-accent tracking-wider block mb-1">
                 PRACTICE LAB // INTERACTIVE TUTOR
               </span>
-              <h2 className="font-display text-xl md:text-2xl uppercase">
+              <h2 className="font-display text-lg sm:text-xl md:text-2xl uppercase">
                 Interactive Everyday AI Tutor
               </h2>
             </div>
@@ -648,12 +681,12 @@ export default function LearnPage() {
               >
                 <div className="flex items-center gap-1.5 mb-1 px-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                    {m.role === "user" ? "👤 YOU" : "🤖 TUNGSTON TUTOR"}
+                    {m.role === "user" ? "👤 YOU" : "🤖 TUNGSTON TUTOR // DAILY TASK COACH"}
                   </span>
                 </div>
 
                 <div
-                  className={`max-w-[90%] md:max-w-[80%] border-2 border-line p-3 text-xs md:text-sm leading-relaxed ${
+                  className={`max-w-[95%] sm:max-w-[85%] md:max-w-[80%] border-2 border-line p-3 text-xs md:text-sm leading-relaxed ${
                     m.role === "user"
                       ? "bg-accent text-line font-bold shadow-hard-sm"
                       : "bg-surface text-ink shadow-hard-sm prose-tungston"
@@ -727,113 +760,151 @@ export default function LearnPage() {
             }}
             className="flex flex-col sm:flex-row gap-2"
           >
-            <input
-              type="text"
+            <textarea
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
-              placeholder="Ask anything or test a daily task prompt here..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendPrompt(inputVal);
+                }
+              }}
+              rows={2}
+              placeholder="Ask anything or test a daily prompt here (Enter to send, Shift+Enter for new line)..."
               disabled={isLoading}
-              className="flex-1 border-2 border-line bg-base px-3 py-2 text-xs md:text-sm text-ink placeholder-muted focus:border-accent"
+              className="flex-1 border-2 border-line bg-base px-3 py-2 text-xs md:text-sm text-ink placeholder-muted/60 focus:border-accent resize-none font-mono"
             />
             <button
               type="submit"
               disabled={isLoading || !inputVal.trim()}
-              className="border-2 border-line bg-accent px-6 py-2 text-xs md:text-sm font-bold uppercase text-line shadow-hard-sm disabled:opacity-50 active:translate-x-[2px] active:translate-y-[2px]"
+              className="border-2 border-line bg-accent px-6 py-2 text-xs md:text-sm font-bold uppercase text-line shadow-hard-sm disabled:opacity-50 active:translate-x-[2px] active:translate-y-[2px] hover:bg-accent/90 transition-all flex items-center justify-center gap-1.5 self-stretch sm:self-auto"
             >
-              {isLoading ? "Sending..." : "SEND PROMPT ↵"}
+              {isLoading ? "Drafting..." : "SEND PROMPT ↵"}
             </button>
           </form>
         </section>
 
         {/* Section 4: Interactive Quiz (Spot the Slop vs. Gold) */}
-        <section className="border-2 border-line bg-surface p-6 shadow-hard space-y-6">
+        <section className="border-2 border-line bg-surface p-5 sm:p-6 shadow-hard space-y-6">
           <div className="border-b-2 border-line pb-4 flex flex-col md:flex-row md:items-end justify-between gap-2">
             <div>
               <span className="text-xs font-bold uppercase text-accent tracking-wider block mb-1">
                 KNOWLEDGE CHECK // PRACTICE YOUR EYE
               </span>
-              <h2 className="font-display text-xl md:text-2xl uppercase">
+              <h2 className="font-display text-lg sm:text-xl md:text-2xl uppercase">
                 Spot The Slop vs. Spot The Gold
               </h2>
             </div>
-            <p className="text-xs text-muted max-w-md">
+            <p className="text-xs text-muted max-w-md leading-relaxed">
               Tap the prompt you think will produce a truly useful, ready-to-use answer.
             </p>
           </div>
 
           <div className="space-y-6">
-            {QUIZ_CHALLENGES.map((challenge, cIdx) => (
-              <div key={cIdx} className="border-2 border-line bg-surface2 p-4 space-y-3">
-                <span className="font-bold text-xs md:text-sm text-ink block">
-                  {challenge.question}
-                </span>
+            {QUIZ_CHALLENGES.map((challenge, cIdx) => {
+              const selected = quizAnswers[cIdx];
+              const isAnswered = Boolean(selected);
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Option A */}
-                  <button
-                    onClick={() => setQuizAnswers((prev) => ({ ...prev, [cIdx]: "A" }))}
-                    className={`border-2 p-3 text-left font-mono text-xs transition-all ${
-                      quizAnswers[cIdx] === "A"
-                        ? challenge.optionA.correct
-                          ? "border-accent bg-accent/10"
-                          : "border-danger bg-danger/10"
-                        : "border-line bg-surface hover:border-accent"
-                    }`}
-                  >
-                    <div className="font-bold mb-1 text-ink">{challenge.optionA.text}</div>
-                    {quizAnswers[cIdx] && (
-                      <div
-                        className={`text-[11px] font-bold mt-2 ${
-                          challenge.optionA.correct ? "text-accent" : "text-danger"
-                        }`}
-                      >
-                        {challenge.optionA.verdict}: {challenge.optionA.reason}
-                      </div>
+              return (
+                <div key={cIdx} className="border-2 border-line bg-surface2 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-xs md:text-sm text-ink block">
+                      {challenge.question}
+                    </span>
+                    {isAnswered && (
+                      <span className="text-[10px] font-bold uppercase text-accent border border-line bg-base px-2 py-0.5">
+                        {selected === (challenge.optionA.correct ? "A" : "B") ? "✓ CORRECT" : "LEARNING MOMENT"}
+                      </span>
                     )}
-                  </button>
+                  </div>
 
-                  {/* Option B */}
-                  <button
-                    onClick={() => setQuizAnswers((prev) => ({ ...prev, [cIdx]: "B" }))}
-                    className={`border-2 p-3 text-left font-mono text-xs transition-all ${
-                      quizAnswers[cIdx] === "B"
-                        ? challenge.optionB.correct
-                          ? "border-accent bg-accent/10"
-                          : "border-danger bg-danger/10"
-                        : "border-line bg-surface hover:border-accent"
-                    }`}
-                  >
-                    <div className="font-bold mb-1 text-ink">{challenge.optionB.text}</div>
-                    {quizAnswers[cIdx] && (
-                      <div
-                        className={`text-[11px] font-bold mt-2 ${
-                          challenge.optionB.correct ? "text-accent" : "text-danger"
-                        }`}
-                      >
-                        {challenge.optionB.verdict}: {challenge.optionB.reason}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Option A */}
+                    <button
+                      onClick={() => setQuizAnswers((prev) => ({ ...prev, [cIdx]: "A" }))}
+                      className={`border-2 p-3 text-left font-mono text-xs transition-all flex flex-col justify-between gap-2 ${
+                        isAnswered
+                          ? challenge.optionA.correct
+                            ? "border-accent bg-accent/15 shadow-hard-sm"
+                            : selected === "A"
+                            ? "border-danger bg-danger/15"
+                            : "border-line/40 bg-surface opacity-70"
+                          : "border-line bg-surface hover:border-accent"
+                      }`}
+                    >
+                      <div>
+                        <span className="border border-line bg-base px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted block w-fit mb-1.5">
+                          OPTION A
+                        </span>
+                        <div className="font-bold text-ink leading-relaxed">{challenge.optionA.text}</div>
                       </div>
-                    )}
-                  </button>
+                      {isAnswered && (
+                        <div
+                          className={`text-[11px] font-bold pt-2 border-t border-line/40 ${
+                            challenge.optionA.correct ? "text-accent" : "text-danger"
+                          }`}
+                        >
+                          {challenge.optionA.verdict}
+                          <p className="font-normal text-[11px] text-ink/80 mt-1">
+                            {challenge.optionA.reason}
+                          </p>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Option B */}
+                    <button
+                      onClick={() => setQuizAnswers((prev) => ({ ...prev, [cIdx]: "B" }))}
+                      className={`border-2 p-3 text-left font-mono text-xs transition-all flex flex-col justify-between gap-2 ${
+                        isAnswered
+                          ? challenge.optionB.correct
+                            ? "border-accent bg-accent/15 shadow-hard-sm"
+                            : selected === "B"
+                            ? "border-danger bg-danger/15"
+                            : "border-line/40 bg-surface opacity-70"
+                          : "border-line bg-surface hover:border-accent"
+                      }`}
+                    >
+                      <div>
+                        <span className="border border-line bg-base px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted block w-fit mb-1.5">
+                          OPTION B
+                        </span>
+                        <div className="font-bold text-ink leading-relaxed">{challenge.optionB.text}</div>
+                      </div>
+                      {isAnswered && (
+                        <div
+                          className={`text-[11px] font-bold pt-2 border-t border-line/40 ${
+                            challenge.optionB.correct ? "text-accent" : "text-danger"
+                          }`}
+                        >
+                          {challenge.optionB.verdict}
+                          <p className="font-normal text-[11px] text-ink/80 mt-1">
+                            {challenge.optionB.reason}
+                          </p>
+                        </div>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
         {/* Section 5: Educational BYOK Key Vault Guide */}
-        <section className="border-2 border-line bg-surface p-6 shadow-hard space-y-6">
+        <section className="border-2 border-line bg-surface p-5 sm:p-6 shadow-hard space-y-6">
           <div className="border-b-2 border-line pb-4 flex flex-col md:flex-row md:items-end justify-between gap-2">
             <div>
               <span className="text-xs font-bold uppercase text-accent tracking-wider block mb-1">
                 ADVANCED TIP // COMPLETE DIGITAL FREEDOM
               </span>
-              <h2 className="font-display text-xl md:text-2xl uppercase">
+              <h2 className="font-display text-lg sm:text-xl md:text-2xl uppercase">
                 What is an &quot;API Key&quot; in Plain English?
               </h2>
             </div>
             <button
               onClick={() => setByokModalOpen(true)}
-              className="border-2 border-line bg-accent px-3 py-1.5 text-xs font-bold uppercase text-line shadow-hard-sm"
+              className="border-2 border-line bg-accent px-3 py-1.5 text-xs font-bold uppercase text-line shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px]"
             >
               🔑 Manage Your Key
             </button>
@@ -843,7 +914,7 @@ export default function LearnPage() {
             <div className="border border-line bg-surface2 p-4 space-y-2">
               <span className="text-xl">🎟️</span>
               <h3 className="font-display text-xs uppercase text-ink">1. Like a Personal Train Pass</h3>
-              <p className="text-xs text-muted leading-relaxed">
+              <p className="text-xs text-ink/80 leading-relaxed">
                 Tungston provides a free shared train pass for everyone. But when thousands of people visit at once, the shared pass has to wait in line. A personal API key is your own private express pass.
               </p>
             </div>
@@ -851,7 +922,7 @@ export default function LearnPage() {
             <div className="border border-line bg-surface2 p-4 space-y-2">
               <span className="text-xl">🆓</span>
               <h3 className="font-display text-xs uppercase text-ink">2. They Are 100% Free</h3>
-              <p className="text-xs text-muted leading-relaxed">
+              <p className="text-xs text-ink/80 leading-relaxed">
                 AI infrastructure providers (like Groq or OpenRouter) give every single human free accounts with generous daily allowances. You do not need a paid subscription or credit card.
               </p>
             </div>
@@ -859,7 +930,7 @@ export default function LearnPage() {
             <div className="border border-line bg-surface2 p-4 space-y-2">
               <span className="text-xl">🔒</span>
               <h3 className="font-display text-xs uppercase text-ink">3. Kept Only On Your Device</h3>
-              <p className="text-xs text-muted leading-relaxed">
+              <p className="text-xs text-ink/80 leading-relaxed">
                 Your key never touches our database. It stays strictly inside your browser&apos;s local memory, meaning you have 100% private control over your own AI usage at all times.
               </p>
             </div>
@@ -870,20 +941,20 @@ export default function LearnPage() {
       {/* BYOK Modal */}
       {byokModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-md border-2 border-line bg-surface p-6 shadow-hard space-y-4">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-line bg-surface p-6 shadow-hard space-y-4">
             <div className="flex items-center justify-between border-b-2 border-line pb-3">
-              <h3 className="font-display text-sm uppercase text-ink">
-                🔑 Personal Key Vault (BYOK)
+              <h3 className="font-display text-sm uppercase text-ink flex items-center gap-2">
+                <span>🔑</span> Personal Key Vault (BYOK)
               </h3>
               <button
                 onClick={() => setByokModalOpen(false)}
-                className="text-muted hover:text-ink font-bold text-sm"
+                className="text-muted hover:text-accent font-bold text-base px-1"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-muted leading-relaxed">
+            <p className="text-xs text-ink/80 leading-relaxed">
               Paste your free Groq or OpenRouter API key below. When entered, your practice lab requests use your personal speed quota and bypass all shared public limits.
             </p>
 
@@ -921,7 +992,7 @@ export default function LearnPage() {
                     rel="noopener noreferrer"
                     className="text-accent underline"
                   >
-                    console.groq.com
+                    console.groq.com ↗
                   </a>
                 </span>
               </div>
@@ -951,7 +1022,7 @@ export default function LearnPage() {
                   </button>
                   <button
                     type="submit"
-                    className="border-2 border-line bg-accent px-4 py-1.5 text-xs font-bold uppercase text-line shadow-hard-sm"
+                    className="border-2 border-line bg-accent px-4 py-1.5 text-xs font-bold uppercase text-line shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px]"
                   >
                     Save Key
                   </button>
