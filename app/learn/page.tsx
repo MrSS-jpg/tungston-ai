@@ -291,7 +291,7 @@ export default function LearnPage() {
               </span>
               <span>TUNGSTON</span>
             </Link>
-            <span className="text-muted text-xs hidden sm:inline">/</span>
+            <span className="text-accent font-bold text-xs hidden sm:inline">/</span>
             <span className="border border-line bg-surface2 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase text-accent tracking-wider">
               EVERYDAY AI
             </span>
@@ -333,12 +333,14 @@ export default function LearnPage() {
       <main className="max-w-6xl mx-auto px-4 py-8 flex-1 space-y-10 sm:space-y-12">
         {/* Hero Section */}
         <section className="border-2 border-line bg-surface p-5 sm:p-8 shadow-hard relative overflow-hidden">
-          <div className="hidden sm:block absolute right-4 top-2 font-display text-8xl md:text-9xl text-surface2/15 select-none pointer-events-none">
-            74
+          {/* Element 74 Brutalist Badge */}
+          <div className="hidden sm:flex absolute right-6 top-6 flex-col items-center justify-center border-2 border-line bg-base p-3 md:p-4 shadow-hard">
+            <span className="font-display text-4xl md:text-5xl text-accent leading-none">74</span>
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-ink mt-1">TUNGSTEN</span>
           </div>
 
           <div className="relative z-10 max-w-3xl space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-1.5 border border-line bg-accent/10 px-2.5 py-0.5 text-[10px] sm:text-xs font-bold text-accent uppercase">
+            <div className="inline-flex items-center gap-1.5 border-2 border-line bg-base px-2.5 py-1 text-[10px] sm:text-xs font-black text-accent uppercase shadow-hard-sm">
               <span>●</span> ZERO JARGON. ZERO INTIMIDATION. 100% PRACTICAL.
             </div>
 
@@ -349,7 +351,7 @@ export default function LearnPage() {
               </span>
             </h1>
 
-            <p className="text-xs sm:text-sm md:text-base text-ink/90 leading-relaxed font-body">
+            <p className="text-xs sm:text-sm md:text-base text-ink leading-relaxed font-body">
               You do <strong>not</strong> need a computer science degree, math skills, or tech
               buzzwords. AI is simply a patient, tireless helper that speaks normal human English. Once you know
               the <strong>4 simple ingredients</strong>, you can write difficult emails, plan meals from whatever is
@@ -357,16 +359,16 @@ export default function LearnPage() {
             </p>
 
             <div className="pt-1 flex flex-wrap gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold uppercase">
-              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
+              <span className="border-2 border-line bg-base px-2 py-1 text-ink shadow-hard-sm">
                 ⚡ Edge Speed
               </span>
-              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
+              <span className="border-2 border-line bg-base px-2 py-1 text-ink shadow-hard-sm">
                 📱 Mobile & Desktop
               </span>
-              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
+              <span className="border-2 border-line bg-base px-2 py-1 text-ink shadow-hard-sm">
                 🛡️ Zero Data Retention
               </span>
-              <span className="border border-line bg-surface2 px-2 py-1 text-ink/80">
+              <span className="border-2 border-line bg-base px-2 py-1 text-ink shadow-hard-sm">
                 💸 100% Free Shared Access
               </span>
             </div>
@@ -384,7 +386,7 @@ export default function LearnPage() {
                 The 4-Piece Puzzle of Great Prompts
               </h2>
             </div>
-            <p className="text-xs text-muted max-w-md leading-relaxed">
+            <p className="text-xs text-ink font-medium max-w-md leading-relaxed">
               Whenever everyday people get robotic, useless answers from AI, it is because they only gave 1 piece of the puzzle. Give all 4 pieces and the answer is pure gold.
             </p>
           </div>
@@ -398,9 +400,9 @@ export default function LearnPage() {
                   <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">1</span>
                   WHO IS IT? (Role)
                 </span>
-                <span className="text-[10px] text-muted">Persona / Job</span>
+                <span className="border border-line bg-base px-2 py-0.5 text-[10px] font-bold uppercase text-accent">Persona / Job</span>
               </div>
-              <p className="text-xs text-ink/80">
+              <p className="text-xs text-ink font-medium">
                 Tell the AI its personality. An &quot;Italian Grandma Cook&quot; answers differently than a &quot;Corporate Chef&quot;.
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -408,10 +410,10 @@ export default function LearnPage() {
                   <button
                     key={r.label}
                     onClick={() => setSelectedRole(r.value)}
-                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
+                    className={`border-2 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedRole === r.value
                         ? "border-line bg-accent text-line font-black shadow-hard-sm"
-                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
+                        : "border-line bg-base text-ink hover:text-accent hover:border-accent shadow-hard-sm"
                     }`}
                   >
                     {selectedRole === r.value ? "✓ " : ""}{r.label}
@@ -422,7 +424,7 @@ export default function LearnPage() {
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
                 rows={2}
-                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder:text-muted focus:border-accent resize-none"
                 placeholder="Or type a custom role..."
               />
             </div>
@@ -434,9 +436,9 @@ export default function LearnPage() {
                   <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">2</span>
                   WHAT SHOULD IT DO? (Task)
                 </span>
-                <span className="text-[10px] text-muted">The exact mission</span>
+                <span className="border border-line bg-base px-2 py-0.5 text-[10px] font-bold uppercase text-accent">The exact mission</span>
               </div>
-              <p className="text-xs text-ink/80">
+              <p className="text-xs text-ink font-medium">
                 Be specific. Don&apos;t say &quot;Help me with dinner&quot; — say &quot;Draft a 3-step recipe using leftover rice&quot;.
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -444,10 +446,10 @@ export default function LearnPage() {
                   <button
                     key={t.label}
                     onClick={() => setSelectedTask(t.value)}
-                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
+                    className={`border-2 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedTask === t.value
                         ? "border-line bg-accent text-line font-black shadow-hard-sm"
-                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
+                        : "border-line bg-base text-ink hover:text-accent hover:border-accent shadow-hard-sm"
                     }`}
                   >
                     {selectedTask === t.value ? "✓ " : ""}{t.label}
@@ -458,7 +460,7 @@ export default function LearnPage() {
                 value={selectedTask}
                 onChange={(e) => setSelectedTask(e.target.value)}
                 rows={2}
-                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder:text-muted focus:border-accent resize-none"
                 placeholder="Or type a custom task..."
               />
             </div>
@@ -470,9 +472,9 @@ export default function LearnPage() {
                   <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">3</span>
                   SITUATION (Context)
                 </span>
-                <span className="text-[10px] text-muted">Your real-life facts</span>
+                <span className="border border-line bg-base px-2 py-0.5 text-[10px] font-bold uppercase text-accent">Your real-life facts</span>
               </div>
-              <p className="text-xs text-ink/80">
+              <p className="text-xs text-ink font-medium">
                 Include the exact details: unit number, budget amount, ingredients on hand, or dates.
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -480,10 +482,10 @@ export default function LearnPage() {
                   <button
                     key={c.label}
                     onClick={() => setSelectedContext(c.value)}
-                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
+                    className={`border-2 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedContext === c.value
                         ? "border-line bg-accent text-line font-black shadow-hard-sm"
-                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
+                        : "border-line bg-base text-ink hover:text-accent hover:border-accent shadow-hard-sm"
                     }`}
                   >
                     {selectedContext === c.value ? "✓ " : ""}{c.label}
@@ -494,7 +496,7 @@ export default function LearnPage() {
                 value={selectedContext}
                 onChange={(e) => setSelectedContext(e.target.value)}
                 rows={2}
-                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder:text-muted focus:border-accent resize-none"
                 placeholder="Or type your specific facts..."
               />
             </div>
@@ -506,9 +508,9 @@ export default function LearnPage() {
                   <span className="grid h-4 w-4 place-items-center bg-accent text-line text-[9px] font-black">4</span>
                   HOW TO SAY IT? (Rules)
                 </span>
-                <span className="text-[10px] text-muted">Length & Tone</span>
+                <span className="border border-line bg-base px-2 py-0.5 text-[10px] font-bold uppercase text-accent">Length & Tone</span>
               </div>
-              <p className="text-xs text-ink/80">
+              <p className="text-xs text-ink font-medium">
                 Prevent walls of text! Set boundaries like &quot;Under 100 words&quot; or &quot;No corporate buzzwords&quot;.
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -516,10 +518,10 @@ export default function LearnPage() {
                   <button
                     key={ru.label}
                     onClick={() => setSelectedRules(ru.value)}
-                    className={`border px-2 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
+                    className={`border-2 px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-all ${
                       selectedRules === ru.value
                         ? "border-line bg-accent text-line font-black shadow-hard-sm"
-                        : "border-line bg-surface text-ink/80 hover:text-accent hover:border-accent"
+                        : "border-line bg-base text-ink hover:text-accent hover:border-accent shadow-hard-sm"
                     }`}
                   >
                     {selectedRules === ru.value ? "✓ " : ""}{ru.label}
@@ -530,7 +532,7 @@ export default function LearnPage() {
                 value={selectedRules}
                 onChange={(e) => setSelectedRules(e.target.value)}
                 rows={2}
-                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder-muted/60 focus:border-accent resize-none"
+                className="w-full border-2 border-line bg-base px-3 py-2 text-xs font-mono text-ink placeholder:text-muted focus:border-accent resize-none"
                 placeholder="Or type custom rules..."
               />
             </div>
@@ -545,20 +547,20 @@ export default function LearnPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleCopyPrompt(assembledPrompt)}
-                  className="border border-line bg-surface px-2 py-0.5 text-[10px] font-bold uppercase text-ink hover:text-accent"
+                  className="border-2 border-line bg-surface2 px-2.5 py-1 text-[10px] font-bold uppercase text-ink hover:text-accent hover:border-accent shadow-hard-sm"
                 >
                   {copiedPrompt ? "✓ COPIED" : "COPY PROMPT"}
                 </button>
-                <span className="text-[10px] text-muted font-bold uppercase">Ready to test</span>
+                <span className="border border-line bg-surface px-2 py-0.5 text-[10px] text-accent font-bold uppercase">Ready to test</span>
               </div>
             </div>
 
-            <div className="border border-line bg-surface p-3 font-mono text-xs md:text-sm text-ink leading-relaxed break-words">
+            <div className="border-2 border-line bg-surface p-3 font-mono text-xs md:text-sm text-ink leading-relaxed break-words font-medium">
               {assembledPrompt}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-              <span className="text-[11px] text-muted">
+              <span className="text-[11px] text-ink font-medium">
                 Notice how clear and foolproof this instruction is for the AI.
               </span>
               <button
@@ -583,7 +585,7 @@ export default function LearnPage() {
                 6 Everyday Superpowers You Can Use Right Now
               </h2>
             </div>
-            <p className="text-xs text-muted max-w-md leading-relaxed">
+            <p className="text-xs text-ink font-medium max-w-md leading-relaxed">
               Tap &quot;Run Now&quot; on any card below to solve a real daily headache in seconds.
             </p>
           </div>
@@ -597,23 +599,23 @@ export default function LearnPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-2xl">{tpl.icon}</span>
-                    <span className="border border-line bg-surface px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent">
+                    <span className="border-2 border-line bg-base px-2 py-0.5 text-[10px] font-black uppercase text-accent shadow-hard-sm">
                       {tpl.category}
                     </span>
                   </div>
                   <h3 className="font-display text-sm md:text-base uppercase text-ink">{tpl.title}</h3>
-                  <p className="text-xs text-ink/80 leading-relaxed">{tpl.description}</p>
+                  <p className="text-xs text-ink font-medium leading-relaxed">{tpl.description}</p>
                 </div>
 
-                <div className="space-y-3 pt-2 border-t border-line/40">
-                  <div className="bg-base border border-line p-2 text-[11px] text-ink/80 line-clamp-3 font-mono leading-relaxed">
+                <div className="space-y-3 pt-2 border-t-2 border-line">
+                  <div className="bg-base border-2 border-line p-2.5 text-[11px] text-ink font-mono font-medium line-clamp-3 leading-relaxed">
                     {tpl.prompt}
                   </div>
 
                   <div className="flex gap-2">
                     <button
                       onClick={() => loadScenarioIntoSimulator(tpl.prompt)}
-                      className="flex-1 border-2 border-line bg-surface hover:bg-accent hover:text-line py-1.5 text-center text-[10px] font-bold uppercase transition-colors"
+                      className="flex-1 border-2 border-line bg-base hover:bg-accent hover:text-line py-1.5 text-center text-[10px] font-bold uppercase text-ink transition-colors shadow-hard-sm"
                     >
                       ✏️ Tweak
                     </button>
@@ -645,10 +647,10 @@ export default function LearnPage() {
 
             <div className="flex items-center gap-2">
               <span
-                className={`border border-line px-2 py-0.5 text-[10px] font-bold uppercase ${
+                className={`border-2 border-line px-2 sm:px-2.5 py-0.5 text-[10px] font-black uppercase shadow-hard-sm ${
                   byokSaved
                     ? "bg-accent text-line"
-                    : "bg-surface2 text-accent"
+                    : "bg-base text-accent"
                 }`}
               >
                 {byokSaved ? "🔑 PERSONAL KEY ACTIVE" : "⚡ SHARED FREE KEY ACTIVE"}
@@ -663,7 +665,7 @@ export default function LearnPage() {
                     },
                   ])
                 }
-                className="border border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold uppercase text-muted hover:text-danger hover:border-danger transition-colors"
+                className="border-2 border-line bg-base px-2.5 py-1 text-[10px] font-bold uppercase text-ink hover:text-danger hover:border-danger transition-colors shadow-hard-sm"
               >
                 Reset Chat
               </button>
@@ -680,7 +682,7 @@ export default function LearnPage() {
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1 px-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
+                  <span className={`text-[10px] font-black uppercase tracking-wider ${m.role === "user" ? "text-accent" : "text-ink"}`}>
                     {m.role === "user" ? "👤 YOU" : "🤖 TUNGSTON TUTOR // DAILY TASK COACH"}
                   </span>
                 </div>
@@ -719,14 +721,14 @@ export default function LearnPage() {
 
           {/* Quick Starter Pills */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="text-[10px] font-bold uppercase text-muted mr-1">Quick tries:</span>
+            <span className="text-[10px] font-black uppercase text-accent mr-1">Quick tries:</span>
             <button
               onClick={() =>
                 handleSendPrompt(
                   "Draft a 2-sentence polite reply telling a pushy salesperson I am not interested and to remove my email from their list."
                 )
               }
-              className="border border-line bg-surface2 px-2 py-0.5 text-[10px] text-ink hover:border-accent hover:text-accent transition-colors"
+              className="border-2 border-line bg-base px-2.5 py-1 text-[10px] font-bold text-ink hover:border-accent hover:text-accent transition-colors shadow-hard-sm"
             >
               🚫 Unsubscribe Polite Text
             </button>
@@ -736,7 +738,7 @@ export default function LearnPage() {
                   "Explain in 2 simple sentences what a 401(k) employer match means without using finance jargon."
                 )
               }
-              className="border border-line bg-surface2 px-2 py-0.5 text-[10px] text-ink hover:border-accent hover:text-accent transition-colors"
+              className="border-2 border-line bg-base px-2.5 py-1 text-[10px] font-bold text-ink hover:border-accent hover:text-accent transition-colors shadow-hard-sm"
             >
               💰 Explain 401(k) Match
             </button>
@@ -746,7 +748,7 @@ export default function LearnPage() {
                   "What are 3 quick meals I can make with canned tuna and pasta in under 12 minutes?"
                 )
               }
-              className="border border-line bg-surface2 px-2 py-0.5 text-[10px] text-ink hover:border-accent hover:text-accent transition-colors"
+              className="border-2 border-line bg-base px-2.5 py-1 text-[10px] font-bold text-ink hover:border-accent hover:text-accent transition-colors shadow-hard-sm"
             >
               🍝 12-Min Tuna & Pasta
             </button>
@@ -772,7 +774,7 @@ export default function LearnPage() {
               rows={2}
               placeholder="Ask anything or test a daily prompt here (Enter to send, Shift+Enter for new line)..."
               disabled={isLoading}
-              className="flex-1 border-2 border-line bg-base px-3 py-2 text-xs md:text-sm text-ink placeholder-muted/60 focus:border-accent resize-none font-mono"
+              className="flex-1 border-2 border-line bg-base px-3 py-2 text-xs md:text-sm text-ink placeholder:text-muted focus:border-accent resize-none font-mono"
             />
             <button
               type="submit"
@@ -795,7 +797,7 @@ export default function LearnPage() {
                 Spot The Slop vs. Spot The Gold
               </h2>
             </div>
-            <p className="text-xs text-muted max-w-md leading-relaxed">
+            <p className="text-xs text-ink font-medium max-w-md leading-relaxed">
               Tap the prompt you think will produce a truly useful, ready-to-use answer.
             </p>
           </div>
@@ -812,7 +814,7 @@ export default function LearnPage() {
                       {challenge.question}
                     </span>
                     {isAnswered && (
-                      <span className="text-[10px] font-bold uppercase text-accent border border-line bg-base px-2 py-0.5">
+                      <span className="text-[10px] font-black uppercase text-accent border-2 border-line bg-base px-2 py-0.5 shadow-hard-sm">
                         {selected === (challenge.optionA.correct ? "A" : "B") ? "✓ CORRECT" : "LEARNING MOMENT"}
                       </span>
                     )}
@@ -825,27 +827,27 @@ export default function LearnPage() {
                       className={`border-2 p-3 text-left font-mono text-xs transition-all flex flex-col justify-between gap-2 ${
                         isAnswered
                           ? challenge.optionA.correct
-                            ? "border-accent bg-accent/15 shadow-hard-sm"
+                            ? "border-accent bg-accent/20 shadow-hard-sm"
                             : selected === "A"
-                            ? "border-danger bg-danger/15"
-                            : "border-line/40 bg-surface opacity-70"
+                            ? "border-danger bg-danger/20"
+                            : "border-line bg-surface"
                           : "border-line bg-surface hover:border-accent"
                       }`}
                     >
                       <div>
-                        <span className="border border-line bg-base px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted block w-fit mb-1.5">
+                        <span className="border-2 border-line bg-base px-2 py-0.5 text-[10px] font-black uppercase text-accent block w-fit mb-1.5 shadow-hard-sm">
                           OPTION A
                         </span>
                         <div className="font-bold text-ink leading-relaxed">{challenge.optionA.text}</div>
                       </div>
                       {isAnswered && (
                         <div
-                          className={`text-[11px] font-bold pt-2 border-t border-line/40 ${
+                          className={`text-[11px] font-bold pt-2 border-t-2 border-line ${
                             challenge.optionA.correct ? "text-accent" : "text-danger"
                           }`}
                         >
                           {challenge.optionA.verdict}
-                          <p className="font-normal text-[11px] text-ink/80 mt-1">
+                          <p className="font-normal text-xs text-ink mt-1.5 leading-relaxed">
                             {challenge.optionA.reason}
                           </p>
                         </div>
@@ -858,27 +860,27 @@ export default function LearnPage() {
                       className={`border-2 p-3 text-left font-mono text-xs transition-all flex flex-col justify-between gap-2 ${
                         isAnswered
                           ? challenge.optionB.correct
-                            ? "border-accent bg-accent/15 shadow-hard-sm"
+                            ? "border-accent bg-accent/20 shadow-hard-sm"
                             : selected === "B"
-                            ? "border-danger bg-danger/15"
-                            : "border-line/40 bg-surface opacity-70"
+                            ? "border-danger bg-danger/20"
+                            : "border-line bg-surface"
                           : "border-line bg-surface hover:border-accent"
                       }`}
                     >
                       <div>
-                        <span className="border border-line bg-base px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted block w-fit mb-1.5">
+                        <span className="border-2 border-line bg-base px-2 py-0.5 text-[10px] font-black uppercase text-accent block w-fit mb-1.5 shadow-hard-sm">
                           OPTION B
                         </span>
                         <div className="font-bold text-ink leading-relaxed">{challenge.optionB.text}</div>
                       </div>
                       {isAnswered && (
                         <div
-                          className={`text-[11px] font-bold pt-2 border-t border-line/40 ${
+                          className={`text-[11px] font-bold pt-2 border-t-2 border-line ${
                             challenge.optionB.correct ? "text-accent" : "text-danger"
                           }`}
                         >
                           {challenge.optionB.verdict}
-                          <p className="font-normal text-[11px] text-ink/80 mt-1">
+                          <p className="font-normal text-xs text-ink mt-1.5 leading-relaxed">
                             {challenge.optionB.reason}
                           </p>
                         </div>
@@ -914,7 +916,7 @@ export default function LearnPage() {
             <div className="border border-line bg-surface2 p-4 space-y-2">
               <span className="text-xl">🎟️</span>
               <h3 className="font-display text-xs uppercase text-ink">1. Like a Personal Train Pass</h3>
-              <p className="text-xs text-ink/80 leading-relaxed">
+              <p className="text-xs text-ink font-medium leading-relaxed">
                 Tungston provides a free shared train pass for everyone. But when thousands of people visit at once, the shared pass has to wait in line. A personal API key is your own private express pass.
               </p>
             </div>
@@ -922,7 +924,7 @@ export default function LearnPage() {
             <div className="border border-line bg-surface2 p-4 space-y-2">
               <span className="text-xl">🆓</span>
               <h3 className="font-display text-xs uppercase text-ink">2. They Are 100% Free</h3>
-              <p className="text-xs text-ink/80 leading-relaxed">
+              <p className="text-xs text-ink font-medium leading-relaxed">
                 AI infrastructure providers (like Groq or OpenRouter) give every single human free accounts with generous daily allowances. You do not need a paid subscription or credit card.
               </p>
             </div>
@@ -930,7 +932,7 @@ export default function LearnPage() {
             <div className="border border-line bg-surface2 p-4 space-y-2">
               <span className="text-xl">🔒</span>
               <h3 className="font-display text-xs uppercase text-ink">3. Kept Only On Your Device</h3>
-              <p className="text-xs text-ink/80 leading-relaxed">
+              <p className="text-xs text-ink font-medium leading-relaxed">
                 Your key never touches our database. It stays strictly inside your browser&apos;s local memory, meaning you have 100% private control over your own AI usage at all times.
               </p>
             </div>
@@ -948,13 +950,13 @@ export default function LearnPage() {
               </h3>
               <button
                 onClick={() => setByokModalOpen(false)}
-                className="text-muted hover:text-accent font-bold text-base px-1"
+                className="text-ink hover:text-accent font-bold text-lg px-2"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-ink/80 leading-relaxed">
+            <p className="text-xs text-ink font-medium leading-relaxed">
               Paste your free Groq or OpenRouter API key below. When entered, your practice lab requests use your personal speed quota and bypass all shared public limits.
             </p>
 
@@ -982,15 +984,15 @@ export default function LearnPage() {
                   value={byokKey}
                   onChange={(e) => setByokKey(e.target.value)}
                   placeholder="gsk_... or sk-or-..."
-                  className="w-full border-2 border-line bg-base px-3 py-2 text-xs text-ink focus:border-accent font-mono"
+                  className="w-full border-2 border-line bg-base px-3 py-2 text-xs text-ink placeholder:text-muted focus:border-accent font-mono"
                 />
-                <span className="text-[10px] text-muted block mt-1">
+                <span className="text-[11px] text-ink font-medium block mt-1.5">
                   Need a free key? Get one in 60s at{" "}
                   <a
                     href="https://console.groq.com/keys"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-accent underline"
+                    className="text-accent underline font-bold"
                   >
                     console.groq.com ↗
                   </a>
@@ -1016,7 +1018,7 @@ export default function LearnPage() {
                   <button
                     type="button"
                     onClick={() => setByokModalOpen(false)}
-                    className="border border-line bg-surface2 px-3 py-1.5 text-xs font-bold uppercase text-muted hover:text-ink"
+                    className="border-2 border-line bg-base px-3.5 py-1.5 text-xs font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
                   >
                     Cancel
                   </button>
@@ -1035,26 +1037,26 @@ export default function LearnPage() {
 
       {/* Brutalist Footer */}
       <footer className="border-t-2 border-line bg-surface mt-12 py-6">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-muted">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-ink">
           <div>
             <span className="font-display text-ink uppercase">TUNGSTON AI</span> // ELEMENT 74
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:text-accent underline">
+          <div className="flex items-center gap-4 font-bold">
+            <Link href="/" className="text-ink hover:text-accent underline decoration-accent underline-offset-2">
               Chat Workbench
             </Link>
             <a
               href="https://tungston-tester.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-accent underline"
+              className="text-ink hover:text-accent underline decoration-accent underline-offset-2"
             >
               Developer Tools
             </a>
-            <Link href="/privacy" className="hover:text-accent underline">
+            <Link href="/privacy" className="text-ink hover:text-accent underline decoration-accent underline-offset-2">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-accent underline">
+            <Link href="/terms" className="text-ink hover:text-accent underline decoration-accent underline-offset-2">
               Terms
             </Link>
           </div>

@@ -12,7 +12,7 @@
   --color-surface: #2E3237;
   --color-surface2: #3A3F45;
   --color-ink: #F2EFE6;
-  --color-muted: #A0A3A9;
+  --color-muted: #D4D6DC;
   --color-accent: #FFA85C;
   --color-line: #0B0C0D;
   --color-danger: #FF6B5A;
@@ -23,7 +23,7 @@
   --color-surface: #E3DFC3;
   --color-surface2: #D0CCB2;
   --color-ink: #0B0C0D;
-  --color-muted: #6B6D71;
+  --color-muted: #3D3F43;
   --color-accent: #E37418;
   --color-line: #0B0C0D;
   --color-danger: #D63926;
@@ -57,19 +57,22 @@ textarea:focus-visible, button:focus-visible, input:focus-visible {
 .prose-tungston p { margin: 0 0 0.65em 0; }
 .prose-tungston p:last-child { margin-bottom: 0; }
 .prose-tungston pre {
-  background: var(--color-surface);
+  background: var(--color-base);
   border: 2px solid var(--color-line);
   padding: 12px 14px;
   overflow-x: auto;
+  color: var(--color-accent);
 }
 .prose-tungston code {
   font-family: var(--font-mono), monospace;
   font-size: 0.85em;
 }
 .prose-tungston :not(pre) > code {
-  background: var(--color-surface);
+  background: var(--color-base);
   border: 2px solid var(--color-line);
-  padding: 0 5px;
+  padding: 1px 6px;
+  color: var(--color-accent);
+  font-weight: 700;
 }
 .prose-tungston a { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; font-weight: 700; }
 .prose-tungston ul { list-style-type: square; padding-left: 1.4em; margin: 0 0 0.75em 0; }
