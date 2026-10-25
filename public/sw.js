@@ -3,7 +3,6 @@
 const CACHE_NAME = "tungston-cache-v2";
 
 const STATIC_PRECACHE = [
-  "/tools",
   "/learn",
   "/privacy",
   "/terms",

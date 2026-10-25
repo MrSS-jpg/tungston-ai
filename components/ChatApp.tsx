@@ -618,11 +618,13 @@ function ChatAppInner() {
               📚 AI GUIDE ↗
             </a>
             <a
-              href="/tools"
+              href="https://tungston-tester.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="hidden lg:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors"
-              title="Client Developer Utilities"
+              title="Dedicated Developer Tools Suite"
             >
-              🛠️ TOOLS ↗
+              🛠️ DEV TOOLS ↗
             </a>
             {!byokConfig.key && (
               <button

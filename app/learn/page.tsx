@@ -297,12 +297,14 @@ export default function LearnPage() {
               🔑 {byokSaved ? "BYOK KEY: ACTIVE" : "BYOK: FREE TIER"}
             </button>
 
-            <Link
-              href="/tools"
+            <a
+              href="https://tungston-tester.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="border-2 border-line bg-surface2 px-2.5 py-1 text-[11px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors shadow-hard-sm"
             >
-              🛠️ TOOLS ↗
-            </Link>
+              🛠️ DEV TOOLS ↗
+            </a>
 
             <Link
               href="/"
@@ -970,9 +972,14 @@ export default function LearnPage() {
             <Link href="/" className="hover:text-accent underline">
               Chat Workbench
             </Link>
-            <Link href="/tools" className="hover:text-accent underline">
+            <a
+              href="https://tungston-tester.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-accent underline"
+            >
               Developer Tools
-            </Link>
+            </a>
             <Link href="/privacy" className="hover:text-accent underline">
               Privacy
             </Link>

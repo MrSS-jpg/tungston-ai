@@ -112,7 +112,7 @@ export function Sidebar({
             </span>
           </button>
 
-          {/* New Hardcoded Client Suites */}
+          {/* Everyday AI Guide & External Developer Tools */}
           <div className="grid grid-cols-2 gap-1.5 pt-1">
             <a
               href="/learn"
@@ -121,10 +121,12 @@ export function Sidebar({
               📚 AI GUIDE ↗
             </a>
             <a
-              href="/tools"
+              href="https://tungston-tester.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors shadow-hard-sm"
             >
-              🛠️ TOOLS ↗
+              🛠️ DEV TOOLS ↗
             </a>
           </div>
         </div>
