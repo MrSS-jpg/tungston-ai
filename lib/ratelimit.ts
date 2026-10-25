@@ -50,8 +50,13 @@ if (url && token) {
 }
 
 export function getClientIp(req: Request): string {
-  const fwd = req.headers.get("x-forwarded-for");
-  return fwd?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+  return (
+    req.headers.get("x-vercel-ip") ||
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "127.0.0.1"
+  );
 }
 
 export type LimitResult = {

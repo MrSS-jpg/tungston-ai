@@ -610,10 +610,24 @@ function ChatAppInner() {
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
+            <a
+              href="/learn"
+              className="hidden md:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-accent hover:bg-surface hover:border-accent transition-colors"
+              title="Everyday AI Guide for real life"
+            >
+              📚 AI GUIDE ↗
+            </a>
+            <a
+              href="/tools"
+              className="hidden lg:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors"
+              title="Client Developer Utilities"
+            >
+              🛠️ TOOLS ↗
+            </a>
             {!byokConfig.key && (
               <button
                 onClick={() => setByokModalOpen(true)}
-                className="hidden lg:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-muted hover:text-ink"
+                className="hidden xl:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-muted hover:text-ink"
                 title="Bring your own API key"
               >
                 BYOK ↗

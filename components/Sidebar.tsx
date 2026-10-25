@@ -111,6 +111,22 @@ export function Sidebar({
               {activeProject ? `${activeProject.files.length} files` : "MANAGE"}
             </span>
           </button>
+
+          {/* New Hardcoded Client Suites */}
+          <div className="grid grid-cols-2 gap-1.5 pt-1">
+            <a
+              href="/learn"
+              className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase text-accent hover:bg-surface hover:border-accent transition-colors shadow-hard-sm"
+            >
+              📚 AI GUIDE ↗
+            </a>
+            <a
+              href="/tools"
+              className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors shadow-hard-sm"
+            >
+              🛠️ TOOLS ↗
+            </a>
+          </div>
         </div>
 
         {/* Chat History Header & Utilities */}

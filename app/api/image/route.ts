@@ -1,7 +1,7 @@
 import { generateImage } from "@/lib/providers";
 import { checkImageLimit, getClientIp } from "@/lib/ratelimit";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
