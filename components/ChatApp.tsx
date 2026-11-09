@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { DashboardView } from "./DashboardView";
 import { PlaygroundView } from "./PlaygroundView";
 import { Sidebar } from "./Sidebar";
 import { Composer } from "./Composer";
@@ -53,10 +52,10 @@ const STARTER_PROMPTS = [
   },
 ];
 
-function ChatAppInner({ defaultView = "dashboard" }: { defaultView?: "dashboard" | "chat" | "playground" }) {
+function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playground" }) {
   const toast = useToast();
 
-  const [activeView, setActiveView] = useState<"dashboard" | "chat" | "playground">(defaultView);
+  const [activeView, setActiveView] = useState<"chat" | "playground">(defaultView);
   const [initialPlaygroundPrompt, setInitialPlaygroundPrompt] = useState<string | null>(null);
 
   // Sync activeView with URL query or saved preference
@@ -64,18 +63,18 @@ function ChatAppInner({ defaultView = "dashboard" }: { defaultView?: "dashboard"
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get("view") || params.get("tab");
-      if (viewParam === "dashboard" || viewParam === "chat" || viewParam === "playground") {
+      if (viewParam === "chat" || viewParam === "playground") {
         setActiveView(viewParam);
       } else if (!defaultView) {
         const saved = localStorage.getItem("tungsten_active_view");
-        if (saved === "dashboard" || saved === "chat" || saved === "playground") {
+        if (saved === "chat" || saved === "playground") {
           setActiveView(saved);
         }
       }
     }
   }, [defaultView]);
 
-  const handleSelectView = (view: "dashboard" | "chat" | "playground", blueprintPrompt?: string) => {
+  const handleSelectView = (view: "chat" | "playground", blueprintPrompt?: string) => {
     setActiveView(view);
     if (blueprintPrompt) {
       setInitialPlaygroundPrompt(blueprintPrompt);
@@ -590,31 +589,20 @@ function ChatAppInner({ defaultView = "dashboard" }: { defaultView?: "dashboard"
               </button>
             )}
 
-            {/* Brand Logo & Name */}
-            <button
-              onClick={() => handleSelectView("dashboard")}
+            {/* Brand Logo -> Links to Main Dashboard at tungston-hazel.vercel.app */}
+            <a
+              href="https://tungston-hazel.vercel.app/"
               className="flex items-center gap-1.5 sm:gap-2 font-display text-sm sm:text-base uppercase tracking-tight hover:text-accent transition-colors shrink-0"
-              title="Tungsten Command Center"
+              title="Return to Main Dashboard (tungston-hazel.vercel.app)"
             >
               <span className="grid h-7 w-7 place-items-center border-2 border-line bg-accent text-line font-black text-xs sm:text-sm">
                 74
               </span>
               <span className="hidden md:inline">TUNGSTEN</span>
-            </button>
+            </a>
 
-            {/* The 3 Core Modules Navigation */}
-            <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Core Navigation">
-              <button
-                onClick={() => handleSelectView("dashboard")}
-                className={`border-2 border-line px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs uppercase transition-all shadow-hard-sm ${
-                  activeView === "dashboard"
-                    ? "bg-accent text-line font-black"
-                    : "bg-surface2 text-ink font-bold hover:text-accent"
-                }`}
-              >
-                🏠 <span className="hidden sm:inline">DASHBOARD</span><span className="sm:hidden">HUB</span>
-              </button>
-
+            {/* The Two Core Tools: Chat & Playground */}
+            <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Tool selection">
               <button
                 onClick={() => handleSelectView("chat")}
                 className={`border-2 border-line px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs uppercase transition-all shadow-hard-sm ${
@@ -623,7 +611,7 @@ function ChatAppInner({ defaultView = "dashboard" }: { defaultView?: "dashboard"
                     : "bg-surface2 text-ink font-bold hover:text-accent"
                 }`}
               >
-                💬 <span className="hidden sm:inline">TUNGSTEN AI</span><span className="sm:hidden">CHAT</span>
+                💬 <span className="hidden sm:inline">CHAT</span>
               </button>
 
               <button
@@ -723,27 +711,8 @@ function ChatAppInner({ defaultView = "dashboard" }: { defaultView?: "dashboard"
           </div>
         </header>
 
-        {/* View Router (Dashboard | Tungsten AI Chat | Playground) */}
-        {activeView === "dashboard" ? (
-          <DashboardView
-            onNavigate={handleSelectView}
-            user={user}
-            onOpenAuth={() => {
-              setAuthModalTab("signin");
-              setAuthModalOpen(true);
-            }}
-            conversations={conversations}
-            projects={projects}
-            onSelectConversation={(id) => {
-              setActiveId(id);
-              handleSelectView("chat");
-            }}
-            onNewChat={() => {
-              newConversation();
-              handleSelectView("chat");
-            }}
-          />
-        ) : activeView === "playground" ? (
+        {/* View Router (Tungsten AI Chat | Playground) */}
+        {activeView === "playground" ? (
           <PlaygroundView
             session={session}
             onOpenAuth={() => {
@@ -881,7 +850,7 @@ function ChatAppInner({ defaultView = "dashboard" }: { defaultView?: "dashboard"
   );
 }
 
-export default function ChatApp({ defaultView = "dashboard" }: { defaultView?: "dashboard" | "chat" | "playground" }) {
+export default function ChatApp({ defaultView = "chat" }: { defaultView?: "chat" | "playground" }) {
   return (
     <ToastProvider>
       <ChatAppInner defaultView={defaultView} />

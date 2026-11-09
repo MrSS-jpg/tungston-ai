@@ -40,8 +40,8 @@ export function Sidebar({
   onClearAll?: () => void;
   onOpenDeleteAccount?: () => void;
   onOpenOnboarding?: () => void;
-  activeView?: "dashboard" | "chat" | "playground";
-  onSelectView?: (view: "dashboard" | "chat" | "playground") => void;
+  activeView?: "chat" | "playground";
+  onSelectView?: (view: "chat" | "playground") => void;
 }) {
   const activeConvo = conversations.find((c) => c.id === activeId);
   const hasMessages = Boolean(activeConvo && activeConvo.messages.length > 0);
@@ -114,26 +114,15 @@ export function Sidebar({
           </button>
 
           {/* Primary Tool Switcher */}
-          <div className="pt-1 space-y-1">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-muted px-1">FOUNDRY ECOSYSTEM</div>
-            <div className="grid grid-cols-3 gap-1">
-              <button
-                onClick={() => {
-                  if (onSelectView) onSelectView("dashboard");
-                  if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
-                }}
-                className={`border-2 border-line px-1.5 py-1.5 text-center font-mono text-[10px] font-black uppercase transition-colors shadow-hard-sm ${
-                  activeView === "dashboard" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
-                }`}
-              >
-                🏠 HUB
-              </button>
+          <div className="pt-1 space-y-1.5">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted px-1">FOUNDRY TOOLS</div>
+            <div className="grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => {
                   if (onSelectView) onSelectView("chat");
                   if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
                 }}
-                className={`border-2 border-line px-1.5 py-1.5 text-center font-mono text-[10px] font-black uppercase transition-colors shadow-hard-sm ${
+                className={`border-2 border-line px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase transition-colors shadow-hard-sm ${
                   activeView === "chat" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
                 }`}
               >
@@ -144,13 +133,19 @@ export function Sidebar({
                   if (onSelectView) onSelectView("playground");
                   if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
                 }}
-                className={`border-2 border-line px-1.5 py-1.5 text-center font-mono text-[10px] font-black uppercase transition-colors shadow-hard-sm ${
+                className={`border-2 border-line px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase transition-colors shadow-hard-sm ${
                   activeView === "playground" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
                 }`}
               >
-                ⚡ APPS
+                ⚡ PLAYGROUND
               </button>
             </div>
+            <a
+              href="https://tungston-hazel.vercel.app/"
+              className="block border border-line bg-surface2 px-2 py-1 text-center font-mono text-[10px] font-bold uppercase text-muted hover:text-accent hover:border-accent transition-colors"
+            >
+              🏠 MAIN DASHBOARD ↗
+            </a>
           </div>
         </div>
 
