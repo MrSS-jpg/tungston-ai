@@ -1,8 +1,10 @@
 // Tungston Element 74 Service Worker
-// Cache-First for static assets, Stale-While-Revalidate for offline tools
-const CACHE_NAME = "tungston-cache-v2";
+// Cache-First for static assets, Network-First for HTML navigation
+const CACHE_NAME = "tungston-cache-v3";
 
 const STATIC_PRECACHE = [
+  "/",
+  "/playground",
   "/learn",
   "/privacy",
   "/terms",
@@ -35,7 +37,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 1. Never intercept or cache API requests (dynamic edge streaming)
+  // 1. Never intercept or cache dynamic API requests
   if (url.pathname.startsWith("/api/")) {
     return;
   }
@@ -61,22 +63,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 3. Stale-While-Revalidate for HTML pages & tools
+  // 3. Network-First for HTML navigation (guarantees newest deployed version, falls back to cache offline)
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const fetchPromise = fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse.ok) {
-              const clone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            }
-            return networkResponse;
-          })
-          .catch(() => cached);
-
-        return cached || fetchPromise;
-      })
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse.ok) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
     );
   }
 });
