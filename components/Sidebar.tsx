@@ -21,6 +21,8 @@ export function Sidebar({
   onClearAll,
   onOpenDeleteAccount,
   onOpenOnboarding,
+  activeView,
+  onSelectView,
 }: {
   conversations: Conversation[];
   activeId: string | null;
@@ -38,6 +40,8 @@ export function Sidebar({
   onClearAll?: () => void;
   onOpenDeleteAccount?: () => void;
   onOpenOnboarding?: () => void;
+  activeView?: "dashboard" | "chat" | "playground";
+  onSelectView?: (view: "dashboard" | "chat" | "playground") => void;
 }) {
   const activeConvo = conversations.find((c) => c.id === activeId);
   const hasMessages = Boolean(activeConvo && activeConvo.messages.length > 0);
@@ -111,20 +115,41 @@ export function Sidebar({
 
           {/* Primary Tool Switcher */}
           <div className="pt-1 space-y-1">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-muted px-1">FOUNDRY TOOLS</div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <Link
-                href="/"
-                className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase text-ink hover:text-accent hover:border-accent transition-colors shadow-hard-sm"
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted px-1">FOUNDRY ECOSYSTEM</div>
+            <div className="grid grid-cols-3 gap-1">
+              <button
+                onClick={() => {
+                  if (onSelectView) onSelectView("dashboard");
+                  if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
+                }}
+                className={`border-2 border-line px-1.5 py-1.5 text-center font-mono text-[10px] font-black uppercase transition-colors shadow-hard-sm ${
+                  activeView === "dashboard" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
+                }`}
+              >
+                🏠 HUB
+              </button>
+              <button
+                onClick={() => {
+                  if (onSelectView) onSelectView("chat");
+                  if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
+                }}
+                className={`border-2 border-line px-1.5 py-1.5 text-center font-mono text-[10px] font-black uppercase transition-colors shadow-hard-sm ${
+                  activeView === "chat" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
+                }`}
               >
                 💬 CHAT
-              </Link>
-              <Link
-                href="/playground"
-                className="border-2 border-line bg-accent px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase text-line hover:bg-accent/90 transition-colors shadow-hard-sm"
+              </button>
+              <button
+                onClick={() => {
+                  if (onSelectView) onSelectView("playground");
+                  if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
+                }}
+                className={`border-2 border-line px-1.5 py-1.5 text-center font-mono text-[10px] font-black uppercase transition-colors shadow-hard-sm ${
+                  activeView === "playground" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
+                }`}
               >
-                ⚡ PLAYGROUND
-              </Link>
+                ⚡ APPS
+              </button>
             </div>
           </div>
         </div>

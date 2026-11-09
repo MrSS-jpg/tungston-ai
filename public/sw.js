@@ -1,11 +1,10 @@
 // Tungston Element 74 Service Worker
 // Cache-First for static assets, Network-First for HTML navigation
-const CACHE_NAME = "tungston-cache-v3";
+const CACHE_NAME = "tungston-cache-v4";
 
 const STATIC_PRECACHE = [
   "/",
   "/playground",
-  "/learn",
   "/privacy",
   "/terms",
   "/favicon.ico",
