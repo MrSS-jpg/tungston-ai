@@ -1,3 +1,5 @@
+import { getPrioritizedKeys, markKeyThrottled } from "./groqPool";
+
 // Every provider below is reached through the same two functions —
 // streamCompletion() and generateImage() — so swapping the backend the
 // app runs on is a one-line env var change (AI_PROVIDER), not a rewrite.
@@ -85,12 +87,14 @@ async function streamOpenAICompatible(
   cfg: {
     baseUrl: string;
     apiKey: string | undefined;
+    apiKeys?: string[];
     model: string;
     extraHeaders?: Record<string, string>;
     fallbackModels?: string[];
   }
 ) {
-  if (!cfg.apiKey) throw new Error(`${PROVIDER.toUpperCase()}_API_KEY is not set`);
+  const candidateKeys = cfg.apiKeys && cfg.apiKeys.length > 0 ? cfg.apiKeys : (cfg.apiKey ? [cfg.apiKey] : []);
+  if (!candidateKeys.length) throw new Error(`${PROVIDER.toUpperCase()}_API_KEY is not set`);
   const wire = system ? [{ role: "system" as const, content: system }, ...messages] : messages;
 
   const candidateModels = [cfg.model, ...(cfg.fallbackModels || [])];
@@ -98,61 +102,69 @@ async function streamOpenAICompatible(
   let activeRes: Response | null = null;
 
   for (const modelToTry of candidateModels) {
-    try {
-      const res = await fetch(cfg.baseUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${cfg.apiKey}`,
-          ...cfg.extraHeaders,
-        },
-        body: JSON.stringify({ model: modelToTry, stream: true, messages: toOpenAIMessages(wire) }),
-      });
+    for (const keyToTry of candidateKeys) {
+      try {
+        const res = await fetch(cfg.baseUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${keyToTry}`,
+            ...cfg.extraHeaders,
+          },
+          body: JSON.stringify({ model: modelToTry, stream: true, messages: toOpenAIMessages(wire) }),
+        });
 
-      if (res.ok && res.body) {
-        activeRes = res;
-        break;
-      }
+        if (res.ok && res.body) {
+          activeRes = res;
+          break;
+        }
 
-      const errText = await res.text();
-      lastErr = `${PROVIDER} error ${res.status}: ${errText}`;
+        const errText = await res.text();
+        lastErr = `${PROVIDER} error ${res.status}: ${errText}`;
 
-      // Catch model 404 or 400 decommissioned/unavailable errors and seamlessly try next model
-      const isModelError =
-        res.status === 404 ||
-        (res.status === 400 && (
-          errText.includes("model_decommissioned") ||
-          errText.includes("decommissioned") ||
-          errText.includes("model_not_found") ||
-          errText.includes("does not exist") ||
-          errText.includes("not found") ||
-          errText.includes("no longer supported") ||
-          (errText.includes("model") && (errText.includes("access") || errText.includes("unknown") || errText.includes("invalid")))
-        ));
+        // Catch model 404 or 400 decommissioned/unavailable errors and seamlessly try next model
+        const isModelError =
+          res.status === 404 ||
+          (res.status === 400 && (
+            errText.includes("model_decommissioned") ||
+            errText.includes("decommissioned") ||
+            errText.includes("model_not_found") ||
+            errText.includes("does not exist") ||
+            errText.includes("not found") ||
+            errText.includes("no longer supported") ||
+            (errText.includes("model") && (errText.includes("access") || errText.includes("unknown") || errText.includes("invalid")))
+          ));
 
-      if (isModelError) {
+        if (isModelError) {
+          break; // break key loop to try next candidate model
+        }
+
+        if (res.status === 429) {
+          markKeyThrottled(keyToTry, 60_000);
+          continue; // try next key in pool
+        }
+
+        if (res.status === 401) {
+          markKeyThrottled(keyToTry, 3_600_000);
+          continue; // try next key in pool
+        }
+
+        throw new Error(lastErr);
+      } catch (e: any) {
+        if (e.message && (
+          e.message.includes("404") ||
+          e.message.includes("decommissioned") ||
+          e.message.includes("not exist") ||
+          e.message.includes("model_not_found")
+        )) break;
         continue;
       }
-
-      if (res.status === 429) {
-        throw new Error(`UPSTREAM_429: ${PROVIDER.toUpperCase()} rate limit or quota exceeded. Please wait a few seconds, or switch to your own BYOK key.`);
-      }
-
-      // For hard auth or quota errors (401), fail immediately
-      throw new Error(lastErr);
-    } catch (e: any) {
-      if (e.message && (
-        e.message.includes("404") ||
-        e.message.includes("decommissioned") ||
-        e.message.includes("not exist") ||
-        e.message.includes("model_not_found")
-      )) continue;
-      throw e;
     }
+    if (activeRes) break;
   }
 
   if (!activeRes || !activeRes.body) {
-    throw new Error(lastErr || `${PROVIDER} could not establish a stream with any requested model.`);
+    throw new Error(lastErr || `${PROVIDER} could not establish a stream with any requested model or key.`);
   }
 
   return textStream((controller) =>
@@ -245,10 +257,12 @@ export async function streamCompletion(
         ? (options?.modelOverride ? sanitizeGroqModel(options.modelOverride, primaryAuth) : primaryAuth)
         : primaryGuest;
       const fallbacks = (isAuth ? authFallbacks : guestFallbacks).filter((m) => m !== chosenModel);
+      const groqKeys = getPrioritizedKeys();
 
       return streamOpenAICompatible(messages, system, {
         baseUrl: "https://api.groq.com/openai/v1/chat/completions",
-        apiKey: process.env.GROQ_API_KEY,
+        apiKey: groqKeys[0] || process.env.GROQ_API_KEY,
+        apiKeys: groqKeys,
         model: chosenModel,
         fallbackModels: fallbacks,
       });

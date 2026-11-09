@@ -10,12 +10,11 @@ export function OnboardingModal({
   open,
   onClose,
   onOpenAuth,
-  onOpenByok,
 }: {
   open: boolean;
   onClose: () => void;
   onOpenAuth: () => void;
-  onOpenByok: () => void;
+  onOpenByok?: () => void;
 }) {
   const [step, setStep] = useState<number>(1);
 
@@ -91,22 +90,22 @@ export function OnboardingModal({
           <div className="space-y-3">
             <div className="border-2 border-line bg-surface2 p-3">
               <span className="text-[10px] font-bold text-accent uppercase tracking-wider block mb-1">
-                STEP 02 // BRING-YOUR-OWN-KEY (BYOK)
+                STEP 02 // PLAYGROUND (LIVE HTML APP BUILDER)
               </span>
               <p className="text-xs text-ink/90 leading-relaxed mb-3">
-                Never get blocked by shared server quotas. Plug in your personal API keys for unlimited direct throughput:
+                Prompt any tool, calculator, or dashboard and Tungsten creates and renders a live, interactive HTML app on the spot:
               </p>
               <ul className="space-y-2 text-xs">
                 <li className="border border-line bg-base p-2">
-                  <span className="font-bold text-accent uppercase">100% Private:</span>
+                  <span className="font-bold text-accent uppercase">Powered by GPT-120B:</span>
                   <span className="text-muted block text-[11px] mt-0.5">
-                    Keys are stored exclusively in your browser's <code className="text-ink">localStorage</code>. They never touch our database.
+                    Synthesizes complete single-file HTML apps with Tailwind CSS, embedded JavaScript, and interactive state.
                   </span>
                 </li>
                 <li className="border border-line bg-base p-2">
-                  <span className="font-bold text-accent uppercase">Multi-Provider:</span>
+                  <span className="font-bold text-accent uppercase">Instant Sandbox & Export:</span>
                   <span className="text-muted block text-[11px] mt-0.5">
-                    Seamlessly switch between Groq, OpenRouter, and Cerebras keys at zero markup.
+                    Test live in a secure iframe, test across mobile/desktop viewports, and download the standalone <code className="text-ink">.html</code> file with 1 click.
                   </span>
                 </li>
               </ul>

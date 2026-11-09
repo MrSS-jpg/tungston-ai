@@ -298,26 +298,12 @@ export default function LearnPage() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={() => setByokModalOpen(true)}
-              className={`border-2 border-line px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase transition-colors shadow-hard-sm ${
-                byokSaved
-                  ? "bg-accent text-line"
-                  : "bg-surface2 text-ink hover:bg-surface hover:text-accent"
-              }`}
-              title="Configure Bring-Your-Own-Key"
+            <Link
+              href="/playground"
+              className="border-2 border-line bg-surface2 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-black uppercase text-accent hover:bg-accent hover:text-line transition-colors shadow-hard-sm"
             >
-              🔑 {byokSaved ? "BYOK ACTIVE" : "BYOK"}
-            </button>
-
-            <a
-              href="https://tungston-tester.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-2 border-line bg-surface2 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors shadow-hard-sm"
-            >
-              🛠️ TOOLS ↗
-            </a>
+              ⚡ PLAYGROUND ↗
+            </Link>
 
             <Link
               href="/"
@@ -1045,14 +1031,9 @@ export default function LearnPage() {
             <Link href="/" className="text-ink hover:text-accent underline decoration-accent underline-offset-2">
               Chat Workbench
             </Link>
-            <a
-              href="https://tungston-tester.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-ink hover:text-accent underline decoration-accent underline-offset-2"
-            >
-              Developer Tools
-            </a>
+            <Link href="/playground" className="text-ink hover:text-accent underline decoration-accent underline-offset-2">
+              Playground
+            </Link>
             <Link href="/privacy" className="text-ink hover:text-accent underline decoration-accent underline-offset-2">
               Privacy
             </Link>

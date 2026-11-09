@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Sidebar } from "./Sidebar";
 import { Composer } from "./Composer";
 import { MessageBubble } from "./MessageBubble";
@@ -9,7 +10,6 @@ import { FilamentMark } from "./FilamentMark";
 import { MenuIcon, SunIcon, MoonIcon } from "./Icons";
 import { AuthModal } from "./AuthModal";
 import { ProjectsModal } from "./ProjectsModal";
-import { ByokModal, getStoredByok, type ByokConfig } from "./ByokModal";
 import { DeleteAccountModal } from "./DeleteAccountModal";
 import { OnboardingModal, ONBOARDING_STORAGE_KEY } from "./OnboardingModal";
 import { ToastProvider, useToast } from "./Toast";
@@ -80,10 +80,6 @@ function ChatAppInner() {
 
   // Authenticated Model selector state
   const [selectedModel, setSelectedModel] = useState<string>("qwen/qwen3.8-27b");
-
-  // BYOK state
-  const [byokConfig, setByokConfig] = useState<ByokConfig>({ key: "", provider: "groq" });
-  const [byokModalOpen, setByokModalOpen] = useState(false);
 
   // Abort controller for Stop button
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -172,7 +168,6 @@ function ChatAppInner() {
       if (savedActiveProj) setActiveProjectId(savedActiveProj);
       const savedModel = localStorage.getItem("tungston_member_model");
       if (savedModel) setSelectedModel(savedModel);
-      setByokConfig(getStoredByok());
     } catch {}
 
     fetch("/api/config")
@@ -394,11 +389,6 @@ function ChatAppInner() {
       if (session?.access_token) {
         headers["Authorization"] = `Bearer ${session.access_token}`;
       }
-      if (byokConfig.key) {
-        headers["x-byok-key"] = byokConfig.key;
-        headers["x-byok-provider"] = byokConfig.provider;
-        if (byokConfig.model) headers["x-byok-model"] = byokConfig.model;
-      }
 
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -418,7 +408,7 @@ function ChatAppInner() {
         } catch {}
 
         if (res.status === 429) {
-          const limitMsg = errJson?.error || "Hourly limit reached. Switch to BYOK key in the top bar to continue.";
+          const limitMsg = errJson?.error || "Hourly limit reached. Please wait a short moment to continue.";
           setRateLimitBanner(limitMsg);
           toast.warning(limitMsg);
           throw new Error(limitMsg);
@@ -525,8 +515,6 @@ function ChatAppInner() {
           setAuthModalOpen(true);
         }}
         onSignOut={() => supabase.auth.signOut()}
-        onOpenByok={() => setByokModalOpen(true)}
-        byokActive={Boolean(byokConfig.key)}
         onExportChat={handleExportChat}
         onClearAll={handleClearAll}
         onOpenDeleteAccount={() => setDeleteAccountModalOpen(true)}
@@ -561,15 +549,7 @@ function ChatAppInner() {
               <MenuIcon size={16} />
             </button>
             <div className="flex items-center gap-1.5 flex-wrap">
-              {byokConfig.key ? (
-                <button
-                  onClick={() => setByokModalOpen(true)}
-                  className="flex items-center border-2 border-line bg-accent text-line px-2 py-0.5 text-[10px] md:text-[11px] font-bold uppercase shadow-hard-sm"
-                  title="Click to configure BYOK settings"
-                >
-                  🔑 BYOK: {byokConfig.provider.toUpperCase()}
-                </button>
-              ) : user ? (
+              {user ? (
                 <div className="flex items-center border-2 border-line bg-surface font-mono text-[10px] md:text-[11px] shadow-hard-sm">
                   <span className="bg-accent px-1.5 py-0.5 font-bold uppercase text-line hidden sm:inline-block">
                     MEMBER
@@ -609,39 +589,21 @@ function ChatAppInner() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
-            <a
-              href="/learn"
-              className="hidden md:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-accent hover:bg-surface hover:border-accent transition-colors"
-              title="Everyday AI Guide for real life"
+          <div className="flex items-center gap-2 md:gap-3">
+            <Link
+              href="/playground"
+              className="border-2 border-line bg-accent px-2.5 sm:px-3 py-1 font-mono text-[10px] md:text-xs font-black uppercase text-line shadow-hard-sm hover:bg-accent/90 transition-all flex items-center gap-1.5"
+              title="Tungsten HTML App Builder & Playground"
             >
-              📚 AI GUIDE ↗
-            </a>
-            <a
-              href="https://tungston-tester.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden lg:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors"
-              title="Dedicated Developer Tools Suite"
-            >
-              🛠️ DEV TOOLS ↗
-            </a>
-            {!byokConfig.key && (
-              <button
-                onClick={() => setByokModalOpen(true)}
-                className="hidden xl:inline-block border border-line bg-surface2 px-2 py-1 text-[10px] font-bold uppercase text-muted hover:text-ink"
-                title="Bring your own API key"
-              >
-                BYOK ↗
-              </button>
-            )}
+              <span>⚡ PLAYGROUND</span>
+            </Link>
             {!user && (
               <button
                 onClick={() => {
                   setAuthModalTab("signin");
                   setAuthModalOpen(true);
                 }}
-                className="hidden sm:inline-block border-2 border-line bg-accent px-2.5 py-1 font-mono text-[10px] md:text-xs font-bold uppercase text-line shadow-hard-sm"
+                className="hidden sm:inline-block border-2 border-line bg-surface2 px-2.5 py-1 font-mono text-[10px] md:text-xs font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
               >
                 Sign In ↗
               </button>
@@ -661,14 +623,14 @@ function ChatAppInner() {
         {rateLimitBanner && (
           <div className="border-b-2 border-line bg-surface2 px-4 py-2 font-mono text-xs flex items-center justify-between text-ink shrink-0">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-danger">⚠️ RATE LIMIT:</span>
+              <span className="font-bold text-danger">⚠️ NOTICE:</span>
               <span>{rateLimitBanner}</span>
             </div>
             <button
-              onClick={() => setByokModalOpen(true)}
+              onClick={() => setRateLimitBanner(null)}
               className="border border-line bg-accent px-2 py-0.5 font-bold uppercase text-line text-[10px]"
             >
-              Use BYOK Key ↗
+              Dismiss
             </button>
           </div>
         )}
@@ -680,9 +642,7 @@ function ChatAppInner() {
                 <FilamentMark size={48} />
                 <h1 className="font-display text-2xl md:text-3xl uppercase leading-none text-ink">Tungston AI</h1>
                 <p className="text-xs md:text-sm text-muted max-w-md">
-                  {byokConfig.key
-                    ? `Running on personal BYOK key (${byokConfig.provider.toUpperCase()}). Unlimited personal quota active.`
-                    : user
+                  {user
                     ? "Signed in member. Qwen 3.8 27B & GPT-OSS 120B models unlocked."
                     : "Running on Groq GPT-OSS 20B engine. Sign in to unlock Qwen 3.8 27B & GPT-OSS 120B."}
                 </p>
@@ -756,13 +716,6 @@ function ChatAppInner() {
         onSaveProjects={handleSaveProjects}
       />
 
-      {/* BYOK Configuration Modal */}
-      <ByokModal
-        open={byokModalOpen}
-        onClose={() => setByokModalOpen(false)}
-        onSave={(cfg) => setByokConfig(cfg)}
-      />
-
       {/* Account Deletion Modal */}
       <DeleteAccountModal
         open={deleteAccountModalOpen}
@@ -785,7 +738,6 @@ function ChatAppInner() {
           setAuthModalTab("signup");
           setAuthModalOpen(true);
         }}
-        onOpenByok={() => setByokModalOpen(true)}
       />
     </div>
   );

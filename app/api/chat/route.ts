@@ -76,7 +76,7 @@ export async function POST(req: Request) {
         const errorMsg =
           limit.reason === "burst"
             ? `Cooldown active: wait ${limit.reset}s before sending another message.`
-            : `Rate limit reached (${limit.limit} msgs / ${userTier === "authenticated" ? "hr" : "15m"}). Resets in ${limit.reset}s. Or switch to BYOK in the top bar.`;
+            : `Rate limit reached (${limit.limit} msgs / ${userTier === "authenticated" ? "hr" : "15m"}). Resets in ${limit.reset}s.`;
 
         return new Response(
           JSON.stringify({
@@ -172,12 +172,12 @@ export async function POST(req: Request) {
     if (msg.includes("UPSTREAM_429")) {
       return new Response(
         JSON.stringify({
-          error: "Upstream capacity temporarily reached. Please wait a few moments or switch to your own BYOK key.",
+          error: "Upstream capacity temporarily reached. The Groq pool is auto-rotating; please retry in a few seconds.",
           quota_exceeded: true,
         }),
         {
           status: 429,
-          headers: { "Content-Type": "application/json", "Retry-After": "15" },
+          headers: { "Content-Type": "application/json", "Retry-After": "10" },
         }
       );
     }

@@ -16,8 +16,6 @@ export function Sidebar({
   user,
   onOpenAuth,
   onSignOut,
-  onOpenByok,
-  byokActive,
   onExportChat,
   onClearAll,
   onOpenDeleteAccount,
@@ -35,8 +33,6 @@ export function Sidebar({
   user: User | null;
   onOpenAuth: () => void;
   onSignOut: () => void;
-  onOpenByok: () => void;
-  byokActive: boolean;
   onExportChat?: () => void;
   onClearAll?: () => void;
   onOpenDeleteAccount?: () => void;
@@ -112,21 +108,18 @@ export function Sidebar({
             </span>
           </button>
 
-          {/* Everyday AI Guide & External Developer Tools */}
-          <div className="grid grid-cols-2 gap-1.5 pt-1">
+          {/* Playground Tool Link */}
+          <div className="pt-1">
             <a
-              href="/learn"
-              className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase text-accent hover:bg-surface hover:border-accent transition-colors shadow-hard-sm"
+              href="/playground"
+              className="flex w-full items-center justify-between border-2 border-line bg-accent px-3 py-2 text-left font-mono text-xs font-black uppercase text-line shadow-hard-sm hover:bg-accent/90 transition-all active:translate-x-[1px] active:translate-y-[1px]"
             >
-              📚 AI GUIDE ↗
-            </a>
-            <a
-              href="https://tungston-tester.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-bold uppercase text-ink hover:bg-surface hover:text-accent transition-colors shadow-hard-sm"
-            >
-              🛠️ DEV TOOLS ↗
+              <span className="flex items-center gap-1.5">
+                <span>⚡ PLAYGROUND</span>
+              </span>
+              <span className="border border-line bg-base px-1.5 py-0.5 text-[9px] font-bold text-accent">
+                HTML APP BUILDER ↗
+              </span>
             </a>
           </div>
         </div>
@@ -201,35 +194,16 @@ export function Sidebar({
           )}
         </nav>
 
-        {/* BYOK and User / Auth Footer */}
+        {/* User / Auth Footer */}
         <div className="mt-3 border-t-2 border-line pt-3 font-mono space-y-2">
-          {/* BYOK Toggle Button */}
-          <button
-            onClick={() => {
-              onOpenByok();
-              if (typeof window !== "undefined" && window.innerWidth < 768) {
-                onClose();
-              }
-            }}
-            className={`w-full border-2 border-line py-1.5 px-3 flex items-center justify-between text-xs font-bold uppercase transition-colors ${
-              byokActive
-                ? "bg-accent text-line"
-                : "bg-surface2 text-muted hover:bg-surface hover:text-ink"
-            }`}
-            title="Configure Bring-Your-Own-Key"
-          >
-            <span>🔑 BYOK KEY</span>
-            <span className="text-[10px]">{byokActive ? "ACTIVE" : "CONFIG ↗"}</span>
-          </button>
-
           {user ? (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="truncate font-bold text-ink max-w-[170px]" title={user.email}>
                   👤 {user.email?.split("@")[0]}
                 </span>
-                <span className="border border-line bg-accent px-1 py-0.2 text-[9px] font-bold text-line">
-                  27B UNLOCKED
+                <span className="border border-line bg-accent px-1.5 py-0.5 text-[9px] font-bold text-line">
+                  120B UNLOCKED
                 </span>
               </div>
               <div className="flex gap-1.5">
@@ -260,7 +234,7 @@ export function Sidebar({
                 onClick={onOpenAuth}
                 className="w-full border-2 border-line bg-accent py-1.5 text-center text-xs font-bold uppercase text-line shadow-hard-sm active:translate-x-[1px] active:translate-y-[1px]"
               >
-                🔑 Sign In for Qwen 27B ↗
+                🔑 Sign In for 120B & Apps ↗
               </button>
             </div>
           )}

@@ -3,8 +3,8 @@ import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tungston AI — Durable Long-Context AI",
-  description: "A durable, long-context AI chat assistant built with brutalist clarity and BYOK flexibility.",
+  title: "Tungsten AI — AI Chat & Live App Playground",
+  description: "Durable, high-precision AI chat assistant and live single-file HTML app builder powered by GPT-120B with Element 74 brutalist design.",
 };
 
 export const viewport: Viewport = {
