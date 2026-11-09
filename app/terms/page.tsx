@@ -59,10 +59,10 @@ export default function TermsPage() {
 
           <section className="space-y-2">
             <h2 className="font-display text-base uppercase text-accent">
-              2. Bring-Your-Own-Key (BYOK) Responsibility
+              2. Playground Code &amp; Generated Applications
             </h2>
             <p>
-              When utilizing the BYOK feature, you are solely responsible for all API charges incurred on your personal provider accounts (e.g. Groq Cloud, OpenRouter credits). Tungston AI charges zero markup and provides zero warranty for third-party billing discrepancies.
+              Tungsten Playground generates client-side HTML, CSS, and JavaScript. You are solely responsible for reviewing and testing any generated applications before running them in production or external environments.
             </p>
           </section>
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FilamentMark } from "./FilamentMark";
 import { CloseIcon, PlusIcon } from "./Icons";
 import type { Conversation, Project } from "@/lib/types";
@@ -108,19 +109,23 @@ export function Sidebar({
             </span>
           </button>
 
-          {/* Playground Tool Link */}
-          <div className="pt-1">
-            <a
-              href="/playground"
-              className="flex w-full items-center justify-between border-2 border-line bg-accent px-3 py-2 text-left font-mono text-xs font-black uppercase text-line shadow-hard-sm hover:bg-accent/90 transition-all active:translate-x-[1px] active:translate-y-[1px]"
-            >
-              <span className="flex items-center gap-1.5">
-                <span>⚡ PLAYGROUND</span>
-              </span>
-              <span className="border border-line bg-base px-1.5 py-0.5 text-[9px] font-bold text-accent">
-                HTML APP BUILDER ↗
-              </span>
-            </a>
+          {/* Primary Tool Switcher */}
+          <div className="pt-1 space-y-1">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted px-1">FOUNDRY TOOLS</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <Link
+                href="/"
+                className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase text-ink hover:text-accent hover:border-accent transition-colors shadow-hard-sm"
+              >
+                💬 CHAT
+              </Link>
+              <Link
+                href="/playground"
+                className="border-2 border-line bg-accent px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase text-line hover:bg-accent/90 transition-colors shadow-hard-sm"
+              >
+                ⚡ PLAYGROUND
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -250,13 +255,13 @@ export function Sidebar({
               </button>
             )}
             <div className="flex items-center gap-2 ml-auto">
-              <a href="/privacy" className="hover:text-accent underline transition-colors">
+              <Link href="/privacy" className="hover:text-accent underline transition-colors">
                 Privacy
-              </a>
+              </Link>
               <span>•</span>
-              <a href="/terms" className="hover:text-accent underline transition-colors">
+              <Link href="/terms" className="hover:text-accent underline transition-colors">
                 Terms
-              </a>
+              </Link>
             </div>
           </div>
         </div>

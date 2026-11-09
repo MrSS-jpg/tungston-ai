@@ -50,7 +50,7 @@ export default function PrivacyPage() {
               • <strong>Account Credentials:</strong> If you sign up, your email and cryptographically hashed password are stored securely via Supabase Auth. Guest tier users can use the platform without providing an email address.
             </p>
             <p>
-              • <strong>Bring-Your-Own-Key (BYOK):</strong> Any API keys you supply (e.g., Groq, OpenRouter, Cerebras) are stored solely in your browser's <code className="bg-base px-1.5 py-0.5 border border-line">localStorage</code>. They are transmitted directly in headers over HTTPS and are never logged or stored in our databases.
+              • <strong>Tungsten Playground &amp; App Code:</strong> HTML, CSS, and JavaScript synthesized in the Playground run locally inside a sandboxed iframe on your device and are never sent to third parties.
             </p>
             <p>
               • <strong>Chat Logs &amp; Context Files:</strong> Your conversations and project files are persisted locally on your device by default. If synced to Supabase, they are protected with strict Row Level Security (RLS) tied to your user identifier.
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
               2. Third-Party Inference Providers
             </h2>
             <p>
-              When executing prompts through shared server keys or BYOK keys, your message payload is sent to the respective LLM inference provider:
+              When executing prompts through Tungsten AI and Playground, your message payload is sent directly to Groq's high-speed LPU infrastructure adhering to zero-data-retention API policies.
             </p>
             <ul className="list-disc list-inside space-y-1 text-xs text-muted pl-2">
               <li><strong className="text-ink">Groq Inc:</strong> High-speed LPUs adhering to zero-data-retention API policies.</li>

@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { AuthModal } from "@/components/AuthModal";
+import { SunIcon, MoonIcon } from "@/components/Icons";
 
-// Default showcase app that renders on initial load
+// Default starter app that renders on initial load
 const DEFAULT_STARTER_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,20 +21,20 @@ const DEFAULT_STARTER_HTML = `<!DOCTYPE html>
   </style>
 </head>
 <body class="p-4 sm:p-6 min-h-screen flex flex-col items-center justify-center">
-  <div class="w-full max-w-lg border-2 border-[#0B0C0D] bg-[#2E3237] p-6 shadow-hard space-y-6">
+  <div class="w-full max-w-lg border-2 border-[#0B0C0D] bg-[#2E3237] p-4 sm:p-6 shadow-hard space-y-5">
     <!-- Header -->
     <div class="flex items-center justify-between border-b-2 border-[#0B0C0D] pb-3">
       <div class="flex items-center gap-2">
         <span class="grid h-7 w-7 place-items-center bg-[#FFA85C] text-[#0B0C0D] font-black text-sm">74</span>
-        <h1 class="text-base font-bold tracking-tight uppercase">FOCUS & TASK WORKBENCH</h1>
+        <h1 class="text-sm sm:text-base font-bold tracking-tight uppercase">FOCUS & TASK WORKBENCH</h1>
       </div>
       <span class="bg-[#3A3F45] border border-[#0B0C0D] px-2 py-0.5 text-[10px] font-bold text-[#FFA85C]">READY</span>
     </div>
 
     <!-- Timer Box -->
-    <div class="border-2 border-[#0B0C0D] bg-[#24272B] p-5 text-center shadow-hard space-y-3">
-      <div id="timer-display" class="text-5xl font-black text-[#FFA85C] tracking-wider">25:00</div>
-      <div class="flex justify-center gap-2">
+    <div class="border-2 border-[#0B0C0D] bg-[#24272B] p-4 sm:p-5 text-center shadow-hard space-y-3">
+      <div id="timer-display" class="text-4xl sm:text-5xl font-black text-[#FFA85C] tracking-wider">25:00</div>
+      <div class="flex flex-wrap justify-center gap-2">
         <button id="btn-toggle" onclick="toggleTimer()" class="border-2 border-[#0B0C0D] bg-[#FFA85C] text-[#0B0C0D] px-4 py-1.5 text-xs font-black uppercase shadow-hard-sm active:translate-x-0.5 active:translate-y-0.5">START</button>
         <button onclick="resetTimer(25)" class="border-2 border-[#0B0C0D] bg-[#3A3F45] text-[#F2EFE6] px-3 py-1.5 text-xs font-bold uppercase shadow-hard-sm hover:border-[#FFA85C]">25M</button>
         <button onclick="resetTimer(5)" class="border-2 border-[#0B0C0D] bg-[#3A3F45] text-[#F2EFE6] px-3 py-1.5 text-xs font-bold uppercase shadow-hard-sm hover:border-[#FFA85C]">5M</button>
@@ -47,7 +48,7 @@ const DEFAULT_STARTER_HTML = `<!DOCTYPE html>
         <input id="task-input" type="text" placeholder="Add a new task..." class="flex-1 border-2 border-[#0B0C0D] bg-[#24272B] px-3 py-1.5 text-xs text-[#F2EFE6] focus:outline-none focus:border-[#FFA85C]" onkeydown="if(event.key==='Enter') addTask()">
         <button onclick="addTask()" class="border-2 border-[#0B0C0D] bg-[#FFA85C] text-[#0B0C0D] px-3 py-1.5 text-xs font-black uppercase shadow-hard-sm">+</button>
       </div>
-      <ul id="task-list" class="space-y-1.5 text-xs max-h-48 overflow-y-auto"></ul>
+      <ul id="task-list" class="space-y-1.5 text-xs max-h-40 overflow-y-auto"></ul>
     </div>
   </div>
 
@@ -168,14 +169,34 @@ export default function PlaygroundPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [streamInfo, setStreamInfo] = useState<{ model: string; key: string } | null>(null);
 
-  // View state
+  // Responsive view state
+  const [mobileView, setMobileView] = useState<"prompt" | "preview" | "code">("prompt");
   const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
   const [deviceWidth, setDeviceWidth] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [copiedCode, setCopiedCode] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
 
+  // Theme toggle state
+  const [isLightMode, setIsLightMode] = useState(false);
+
   // History of prompts for this session
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
+
+  // Check initial theme
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsLightMode(document.documentElement.classList.contains("light"));
+    }
+  }, []);
+
+  // Theme effect
+  useEffect(() => {
+    if (isLightMode) {
+      document.documentElement.classList.add("light");
+    } else {
+      document.documentElement.classList.remove("light");
+    }
+  }, [isLightMode]);
 
   // Supabase Auth Listener
   useEffect(() => {
@@ -206,6 +227,8 @@ export default function PlaygroundPage() {
     setErrorMsg(null);
     setIsGenerating(true);
     setActiveTab("preview");
+    // Switch to preview on mobile so the user instantly sees the live app
+    setMobileView("preview");
 
     try {
       const res = await fetch("/api/playground/generate", {
@@ -282,51 +305,55 @@ export default function PlaygroundPage() {
   return (
     <div className="min-h-screen bg-base text-ink font-mono selection:bg-accent selection:text-base flex flex-col antialiased">
       {/* Top Header */}
-      <header className="border-b-2 border-line bg-surface sticky top-0 z-40 shadow-hard-sm">
-        <div className="max-w-[1700px] mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
-          {/* Logo & Navigation */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+      <header className="border-b-2 border-line bg-surface sticky top-0 z-40 shadow-hard-sm shrink-0">
+        <div className="max-w-[1700px] mx-auto px-2.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2">
+          {/* Logo & Tool Navigation */}
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <Link
               href="/"
-              className="flex items-center gap-2 font-display text-base uppercase tracking-tight hover:text-accent transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 font-display text-sm sm:text-base uppercase tracking-tight hover:text-accent transition-colors shrink-0"
+              title="Tungsten AI Home"
             >
-              <span className="grid h-7 w-7 place-items-center border-2 border-line bg-accent text-line font-black text-sm">
+              <span className="grid h-7 w-7 place-items-center border-2 border-line bg-accent text-line font-black text-xs sm:text-sm">
                 74
               </span>
-              <span>TUNGSTEN</span>
+              <span className="hidden xs:inline">TUNGSTEN</span>
             </Link>
-            <span className="text-accent font-bold text-xs hidden sm:inline">/</span>
-            <div className="flex items-center gap-1.5">
-              <span className="border-2 border-line bg-accent px-2 py-0.5 text-[10px] sm:text-xs font-black uppercase text-line tracking-wider shadow-hard-sm">
-                ⚡ PLAYGROUND
+
+            {/* Two Core Tools Switcher */}
+            <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Tool Navigation">
+              <Link
+                href="/"
+                className="border-2 border-line bg-surface2 text-ink hover:text-accent hover:border-accent px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-bold uppercase transition-all shadow-hard-sm"
+              >
+                💬 <span className="hidden sm:inline">CHAT</span>
+              </Link>
+              <span className="border-2 border-line bg-accent text-line px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-black uppercase shadow-hard-sm">
+                ⚡ <span className="hidden sm:inline">PLAYGROUND</span><span className="sm:hidden">APP</span>
               </span>
-              <span className="border border-line bg-surface2 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-ink uppercase hidden md:inline">
-                GPT-120B ENGINE
-              </span>
-            </div>
+            </nav>
           </div>
 
-          {/* Model Status Pill & Auth Button */}
-          <div className="flex items-center gap-2">
-            <div className="hidden lg:flex items-center gap-1.5 border border-line bg-base px-2.5 py-1 text-[10px] font-bold text-ink">
-              <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-              <span>4-KEY GROQ POOL ACTIVE</span>
+          {/* Right: Engine Pill, Auth & Theme */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <span className="border border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold text-accent uppercase hidden md:inline">
+              GPT-120B ENGINE
+            </span>
+
+            <div className="hidden xl:flex items-center gap-1.5 border border-line bg-base px-2 py-0.5 text-[10px] font-bold text-ink">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+              <span>4-KEY POOL</span>
             </div>
 
-            <Link
-              href="/"
-              className="border-2 border-line bg-surface2 px-2.5 sm:px-3 py-1 text-[11px] font-bold uppercase text-ink hover:text-accent hover:border-accent transition-colors shadow-hard-sm"
-            >
-              💬 CHAT WORKBENCH
-            </Link>
-
             {session?.user ? (
-              <div className="flex items-center gap-2 border-2 border-line bg-surface px-2.5 py-1 text-[11px] font-bold shadow-hard-sm">
+              <div className="flex items-center gap-1 border-2 border-line bg-surface px-2 py-1 text-[10px] sm:text-[11px] font-bold shadow-hard-sm">
                 <span className="text-accent font-black">●</span>
-                <span className="max-w-[120px] truncate text-ink">{session.user.email}</span>
+                <span className="max-w-[70px] sm:max-w-[110px] truncate text-ink">
+                  {session.user.email?.split("@")[0]}
+                </span>
                 <button
                   onClick={() => supabase.auth.signOut()}
-                  className="text-muted hover:text-danger ml-1 uppercase text-[10px]"
+                  className="text-muted hover:text-danger ml-0.5 uppercase text-[10px]"
                   title="Sign out"
                 >
                   ✕
@@ -335,21 +362,85 @@ export default function PlaygroundPage() {
             ) : (
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="border-2 border-line bg-accent px-3 py-1 text-[11px] font-black uppercase text-line shadow-hard-sm hover:bg-accent/90 transition-all"
+                className="border-2 border-line bg-accent px-2 sm:px-2.5 py-1 text-[10px] sm:text-xs font-black uppercase text-line shadow-hard-sm hover:bg-accent/90 transition-all shrink-0"
               >
-                🔑 SIGN IN FOR ACCESS
+                🔑 SIGN IN
               </button>
             )}
+
+            <button
+              onClick={() => setIsLightMode(!isLightMode)}
+              aria-label="Toggle theme"
+              className="grid h-7 w-7 sm:h-8 sm:w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0"
+            >
+              {isLightMode ? <MoonIcon size={14} /> : <SunIcon size={14} />}
+            </button>
           </div>
         </div>
       </header>
 
+      {/* Mobile Mode Switcher Bar (< lg screens) */}
+      <div className="lg:hidden border-b-2 border-line bg-surface2 px-2.5 py-1.5 flex items-center justify-between gap-1.5 shrink-0 shadow-hard-sm">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setMobileView("prompt")}
+            className={`border-2 border-line px-2.5 py-1 text-[10px] sm:text-xs uppercase transition-all shadow-hard-sm ${
+              mobileView === "prompt"
+                ? "bg-accent text-line font-black"
+                : "bg-base text-ink font-bold hover:text-accent"
+            }`}
+          >
+            ✏️ PROMPT
+          </button>
+          <button
+            onClick={() => {
+              setMobileView("preview");
+              setActiveTab("preview");
+            }}
+            className={`border-2 border-line px-2.5 py-1 text-[10px] sm:text-xs uppercase transition-all shadow-hard-sm flex items-center gap-1 ${
+              mobileView === "preview"
+                ? "bg-accent text-line font-black"
+                : "bg-base text-ink font-bold hover:text-accent"
+            }`}
+          >
+            👁️ LIVE APP
+            {isGenerating && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />}
+          </button>
+          <button
+            onClick={() => {
+              setMobileView("code");
+              setActiveTab("code");
+            }}
+            className={`border-2 border-line px-2.5 py-1 text-[10px] sm:text-xs uppercase transition-all shadow-hard-sm ${
+              mobileView === "code"
+                ? "bg-accent text-line font-black"
+                : "bg-base text-ink font-bold hover:text-accent"
+            }`}
+          >
+            💻 HTML
+          </button>
+        </div>
+
+        {mobileView !== "prompt" && (
+          <button
+            onClick={() => setMobileView("prompt")}
+            className="border-2 border-line bg-accent px-2 py-0.5 text-[10px] font-black text-line uppercase shadow-hard-sm"
+          >
+            + REVISE
+          </button>
+        )}
+      </div>
+
       {/* Main Workspace Layout */}
-      <main className="flex-1 flex flex-col lg:flex-row max-w-[1700px] w-full mx-auto p-3 sm:p-4 gap-4 overflow-hidden">
-        {/* Left Controller / Prompt Pane */}
-        <div className="w-full lg:w-[460px] xl:w-[500px] shrink-0 flex flex-col gap-4">
+      <main className="flex-1 max-w-[1700px] w-full mx-auto p-2.5 sm:p-4 gap-4 flex flex-col lg:flex-row lg:h-[calc(100vh-62px)] overflow-hidden">
+        {/* Left Controller / Prompt & Blueprints Pane */}
+        <div
+          className={`w-full lg:w-[440px] xl:w-[480px] shrink-0 flex flex-col gap-3 sm:gap-4 overflow-y-auto ${
+            mobileView !== "prompt" ? "hidden lg:flex" : "flex"
+          }`}
+        >
           {/* Prompting Box */}
-          <div className="border-2 border-line bg-surface p-4 shadow-hard space-y-3">
+          <div className="border-2 border-line bg-surface p-3.5 sm:p-4 shadow-hard space-y-3 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-accent tracking-wider flex items-center gap-1.5">
                 <span>⚡</span> APP GENERATOR (120B)
@@ -429,8 +520,8 @@ export default function PlaygroundPage() {
             )}
           </div>
 
-          {/* Quick Starter Inspiration Cards */}
-          <div className="border-2 border-line bg-surface p-4 shadow-hard space-y-3 flex-1 overflow-y-auto">
+          {/* Quick Starter Inspiration Blueprints */}
+          <div className="border-2 border-line bg-surface p-3.5 sm:p-4 shadow-hard space-y-3 flex-1 overflow-y-auto">
             <span className="text-xs font-black uppercase text-accent tracking-wider block">
               💡 INSTANT APP BLUEPRINTS
             </span>
@@ -459,12 +550,16 @@ export default function PlaygroundPage() {
           </div>
         </div>
 
-        {/* Right Live Canvas / Inspector Pane */}
-        <div className="flex-1 border-2 border-line bg-surface shadow-hard flex flex-col min-h-[500px] overflow-hidden">
+        {/* Right Live Canvas & Code Inspector Pane */}
+        <div
+          className={`flex-1 border-2 border-line bg-surface shadow-hard flex flex-col min-h-[500px] lg:min-h-0 overflow-hidden ${
+            mobileView === "prompt" ? "hidden lg:flex" : "flex"
+          }`}
+        >
           {/* Canvas Toolbar */}
-          <div className="border-b-2 border-line bg-surface2 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-            {/* Mode Switcher */}
-            <div className="flex items-center gap-1">
+          <div className="border-b-2 border-line bg-surface2 px-2.5 sm:px-3 py-1.5 sm:py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+            {/* Desktop Mode Switcher */}
+            <div className="hidden lg:flex items-center gap-1">
               <button
                 onClick={() => setActiveTab("preview")}
                 className={`border-2 border-line px-3 py-1 text-xs font-black uppercase transition-all shadow-hard-sm ${
@@ -487,8 +582,14 @@ export default function PlaygroundPage() {
               </button>
             </div>
 
-            {/* Device Width Toggles (Active in preview mode) */}
-            {activeTab === "preview" && (
+            {/* Mobile View Indicator / Mode Title */}
+            <div className="lg:hidden flex items-center gap-1.5 text-xs font-bold uppercase text-accent">
+              <span>{mobileView === "preview" ? "👁️ LIVE APP PREVIEW" : "💻 HTML CODE INSPECTOR"}</span>
+            </div>
+
+            {/* Device Width Toggles (Desktop only, active in preview mode) */}
+            {((activeTab === "preview" && typeof window !== "undefined" && window.innerWidth >= 1024) ||
+              mobileView === "preview") && (
               <div className="hidden sm:flex items-center gap-1 border border-line bg-base px-1.5 py-0.5">
                 <button
                   onClick={() => setDeviceWidth("desktop")}
@@ -521,10 +622,10 @@ export default function PlaygroundPage() {
             )}
 
             {/* Action Tools */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
               <button
                 onClick={() => setIframeKey((k) => k + 1)}
-                className="border-2 border-line bg-base px-2.5 py-1 text-[11px] font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
+                className="border-2 border-line bg-base px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
                 title="Reload preview"
               >
                 🔄 RELOAD
@@ -532,23 +633,23 @@ export default function PlaygroundPage() {
 
               <button
                 onClick={handleCopy}
-                className="border-2 border-line bg-base px-2.5 py-1 text-[11px] font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
+                className="border-2 border-line bg-base px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
               >
                 {copiedCode ? "✓ COPIED" : "📋 COPY"}
               </button>
 
               <button
                 onClick={handleDownload}
-                className="border-2 border-line bg-accent px-2.5 py-1 text-[11px] font-black uppercase text-line shadow-hard-sm hover:bg-accent/90"
+                className="border-2 border-line bg-accent px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-black uppercase text-line shadow-hard-sm hover:bg-accent/90"
               >
-                💾 EXPORT .HTML
+                💾 EXPORT
               </button>
             </div>
           </div>
 
           {/* Canvas Display View */}
-          <div className="flex-1 bg-base p-2 sm:p-4 flex items-center justify-center overflow-auto relative">
-            {activeTab === "preview" ? (
+          <div className="flex-1 bg-base p-1.5 sm:p-3 flex items-center justify-center overflow-auto relative min-h-0">
+            {activeTab === "preview" && mobileView !== "code" ? (
               <div
                 className={`h-full border-2 border-line bg-white shadow-hard transition-all duration-300 relative flex flex-col ${
                   deviceWidth === "desktop"
@@ -560,7 +661,7 @@ export default function PlaygroundPage() {
               >
                 {/* Streaming / Loading overlay */}
                 {isGenerating && (
-                  <div className="absolute top-2 right-2 z-20 border-2 border-line bg-accent text-line px-3 py-1 text-xs font-black uppercase shadow-hard-sm flex items-center gap-2">
+                  <div className="absolute top-2 right-2 z-20 border-2 border-line bg-accent text-line px-2.5 py-1 text-[10px] sm:text-xs font-black uppercase shadow-hard-sm flex items-center gap-1.5">
                     <span className="animate-spin">⚙️</span>
                     <span>GENERATING LIVE HTML...</span>
                   </div>
@@ -571,11 +672,11 @@ export default function PlaygroundPage() {
                   title="Tungsten Live App Preview"
                   sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
                   srcDoc={currentHtml}
-                  className="w-full h-full min-h-[480px] border-none bg-white"
+                  className="w-full h-full min-h-[450px] border-none bg-white flex-1"
                 />
               </div>
             ) : (
-              <div className="w-full h-full border-2 border-line bg-[#1E2023] p-4 text-xs font-mono text-ink overflow-auto">
+              <div className="w-full h-full border-2 border-line bg-[#1E2023] p-3 sm:p-4 text-xs font-mono text-ink overflow-auto">
                 <pre className="whitespace-pre-wrap leading-relaxed select-all">
                   {currentHtml}
                 </pre>

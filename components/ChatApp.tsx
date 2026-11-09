@@ -539,83 +539,99 @@ function ChatAppInner() {
           </div>
         )}
 
-        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-3 py-2.5 md:px-8 md:py-3 font-mono">
-          <div className="flex items-center gap-2 md:gap-3">
+        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-2.5 py-2 sm:px-4 md:px-6 font-mono shrink-0">
+          {/* Left: Sidebar toggle & Core Tools */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle sidebar"
-              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors"
+              className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0"
             >
               <MenuIcon size={16} />
             </button>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {user ? (
-                <div className="flex items-center border-2 border-line bg-surface font-mono text-[10px] md:text-[11px] shadow-hard-sm">
-                  <span className="bg-accent px-1.5 py-0.5 font-bold uppercase text-line hidden sm:inline-block">
-                    MEMBER
-                  </span>
-                  <select
-                    value={selectedModel}
-                    onChange={(e) => handleSelectModel(e.target.value)}
-                    className="bg-surface2 px-1.5 py-0.5 font-bold uppercase text-ink outline-none cursor-pointer hover:bg-surface border-l sm:border-l-0 border-line"
-                    title="Select model for signed-in tier"
-                  >
-                    <option value="qwen/qwen3.8-27b">QWEN 3.8 27B (DEFAULT)</option>
-                    <option value="openai/gpt-oss-120b">GPT-OSS 120B (FLAGSHIP)</option>
-                    <option value="openai/gpt-oss-20b">GPT-OSS 20B (TURBO)</option>
-                  </select>
-                </div>
-              ) : (
-                <span className="border-2 border-line bg-ink px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[var(--color-base)]">
-                  GROQ: GPT-OSS 20B (GUEST)
-                </span>
-              )}
 
-              {activeProject ? (
-                <button
-                  onClick={() => setProjectsModalOpen(true)}
-                  className="border-2 border-line bg-surface2 px-1.5 py-0.5 font-mono text-[10px] md:text-[11px] font-bold uppercase text-accent hover:bg-accent hover:text-line truncate max-w-[150px] md:max-w-[220px]"
-                  title="Click to view/edit project context files"
-                >
-                  📁 {activeProject.name} ({activeProject.files.length}/5 files)
-                </button>
-              ) : (
-                <button
-                  onClick={() => setProjectsModalOpen(true)}
-                  className="hidden sm:inline-block border border-line bg-surface2 px-1.5 py-0.5 font-mono text-[10px] text-muted hover:text-ink"
-                >
-                  + Attach Project Context
-                </button>
-              )}
-            </div>
+            {/* Two Core Tools: Chat & Playground */}
+            <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Tool selection">
+              <span className="border-2 border-line bg-accent text-line px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-black uppercase shadow-hard-sm">
+                💬 <span className="hidden sm:inline">CHAT</span>
+              </span>
+              <Link
+                href="/playground"
+                className="border-2 border-line bg-surface2 text-ink hover:text-accent hover:border-accent px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-bold uppercase transition-all shadow-hard-sm"
+                title="Switch to HTML App Playground"
+              >
+                ⚡ <span className="hidden sm:inline">PLAYGROUND</span><span className="sm:hidden">APP</span>
+              </Link>
+            </nav>
           </div>
-          <div className="flex items-center gap-2 md:gap-3">
-            <Link
-              href="/playground"
-              className="border-2 border-line bg-accent px-2.5 sm:px-3 py-1 font-mono text-[10px] md:text-xs font-black uppercase text-line shadow-hard-sm hover:bg-accent/90 transition-all flex items-center gap-1.5"
-              title="Tungsten HTML App Builder & Playground"
-            >
-              <span>⚡ PLAYGROUND</span>
-            </Link>
-            {!user && (
+
+          {/* Right: Model status / Project / Theme / Auth */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {user ? (
+              <div className="hidden lg:flex items-center border-2 border-line bg-surface font-mono text-[10px] md:text-[11px] shadow-hard-sm">
+                <span className="bg-accent px-1.5 py-0.5 font-bold uppercase text-line">
+                  MEMBER
+                </span>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => handleSelectModel(e.target.value)}
+                  className="bg-surface2 px-1.5 py-0.5 font-bold uppercase text-ink outline-none cursor-pointer hover:bg-surface border-l border-line"
+                >
+                  <option value="qwen/qwen3.8-27b">QWEN 27B</option>
+                  <option value="openai/gpt-oss-120b">GPT-120B</option>
+                  <option value="openai/gpt-oss-20b">GPT-20B</option>
+                </select>
+              </div>
+            ) : (
+              <span className="hidden xl:inline-block border border-line bg-base px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-muted">
+                GPT-20B GUEST
+              </span>
+            )}
+
+            {activeProject ? (
+              <button
+                onClick={() => setProjectsModalOpen(true)}
+                className="hidden sm:inline-block border-2 border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold uppercase text-accent hover:bg-accent hover:text-line truncate max-w-[120px] md:max-w-[160px]"
+                title="Manage Project Context"
+              >
+                📁 {activeProject.name}
+              </button>
+            ) : (
+              <button
+                onClick={() => setProjectsModalOpen(true)}
+                className="hidden xl:inline-block border border-line bg-surface2 px-2 py-0.5 text-[10px] text-muted hover:text-ink"
+              >
+                + Project
+              </button>
+            )}
+
+            {!user ? (
               <button
                 onClick={() => {
                   setAuthModalTab("signin");
                   setAuthModalOpen(true);
                 }}
-                className="hidden sm:inline-block border-2 border-line bg-surface2 px-2.5 py-1 font-mono text-[10px] md:text-xs font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
+                className="border-2 border-line bg-surface2 px-2 sm:px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase text-ink hover:text-accent shadow-hard-sm"
               >
                 Sign In ↗
               </button>
+            ) : (
+              <span className="hidden sm:inline-block border border-line bg-base px-2 py-0.5 text-[10px] text-accent truncate max-w-[100px]">
+                {user.email?.split("@")[0]}
+              </span>
             )}
+
             <button
               onClick={() => setIsLightMode(!isLightMode)}
               aria-label="Toggle theme"
-              className="grid h-8 w-8 md:h-9 md:w-9 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors"
+              className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0"
             >
               {isLightMode ? <MoonIcon size={15} /> : <SunIcon size={15} />}
             </button>
-            <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
+
+            <div className="hidden sm:block">
+              <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
+            </div>
           </div>
         </header>
 

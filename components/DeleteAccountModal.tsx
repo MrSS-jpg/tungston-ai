@@ -66,8 +66,8 @@ export function DeleteAccountModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 font-mono">
-      <div className="w-full max-w-md border-3 border-danger bg-surface p-6 shadow-hard text-ink">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 font-mono">
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto border-3 border-danger bg-surface p-4 sm:p-6 shadow-hard text-ink">
         <div className="flex items-center justify-between border-b-2 border-line pb-3 mb-4">
           <div className="flex items-center gap-2">
             <span className="bg-danger text-white px-1.5 py-0.5 text-xs font-bold uppercase">

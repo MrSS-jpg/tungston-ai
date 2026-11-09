@@ -144,8 +144,8 @@ export function AuthModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 font-mono">
-      <div className="w-full max-w-md border-3 border-line bg-surface p-6 shadow-hard text-ink">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 font-mono">
+      <div className="w-full max-w-md max-h-[92vh] overflow-y-auto border-3 border-line bg-surface p-4 sm:p-6 shadow-hard text-ink">
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-line pb-3 mb-4">
           <div className="font-display text-lg uppercase tracking-tight">
