@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { PlaygroundView } from "./PlaygroundView";
 import { Sidebar } from "./Sidebar";
 import { Composer } from "./Composer";
 import { MessageBubble } from "./MessageBubble";
@@ -52,40 +51,8 @@ const STARTER_PROMPTS = [
   },
 ];
 
-function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playground" }) {
+function ChatAppInner() {
   const toast = useToast();
-
-  const [activeView, setActiveView] = useState<"chat" | "playground">(defaultView);
-  const [initialPlaygroundPrompt, setInitialPlaygroundPrompt] = useState<string | null>(null);
-
-  // Sync activeView with URL query or saved preference
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const viewParam = params.get("view") || params.get("tab");
-      if (viewParam === "chat" || viewParam === "playground") {
-        setActiveView(viewParam);
-      } else if (!defaultView) {
-        const saved = localStorage.getItem("tungsten_active_view");
-        if (saved === "chat" || saved === "playground") {
-          setActiveView(saved);
-        }
-      }
-    }
-  }, [defaultView]);
-
-  const handleSelectView = (view: "chat" | "playground", blueprintPrompt?: string) => {
-    setActiveView(view);
-    if (blueprintPrompt) {
-      setInitialPlaygroundPrompt(blueprintPrompt);
-    }
-    if (typeof window !== "undefined") {
-      localStorage.setItem("tungsten_active_view", view);
-      const url = new URL(window.location.href);
-      url.searchParams.set("view", view);
-      window.history.replaceState({}, "", url.toString());
-    }
-  };
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -532,14 +499,13 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
 
   return (
     <div className="flex h-screen overflow-hidden bg-base text-ink relative font-mono">
-      {/* Sidebar (Active in Tungsten AI Chat View) */}
       <Sidebar
         conversations={conversations}
         activeId={activeId}
         onSelect={setActiveId}
         onNew={newConversation}
         onDelete={deleteConversation}
-        open={sidebarOpen && activeView === "chat"}
+        open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         activeProject={activeProject}
         onOpenProjects={() => setProjectsModalOpen(true)}
@@ -553,8 +519,6 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
         onClearAll={handleClearAll}
         onOpenDeleteAccount={() => setDeleteAccountModalOpen(true)}
         onOpenOnboarding={() => setOnboardingModalOpen(true)}
-        activeView={activeView}
-        onSelectView={handleSelectView}
       />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -575,19 +539,17 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
           </div>
         )}
 
-        {/* Master Navigation Header (Unifies Dashboard, Chat & Playground) */}
+        {/* Flagship Header */}
         <header className="flex items-center justify-between border-b-2 border-line bg-surface px-2.5 py-2 sm:px-4 md:px-6 font-mono shrink-0 shadow-hard-sm">
-          {/* Left: Sidebar toggle (in chat view) + Brand + 3 Modules */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {activeView === "chat" && (
-              <button
-                onClick={() => setSidebarOpen((v) => !v)}
-                aria-label="Toggle sidebar"
-                className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0"
-              >
-                <MenuIcon size={16} />
-              </button>
-            )}
+          {/* Left: Sidebar toggle + Brand + Foundry Links */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setSidebarOpen((v) => !v)}
+              aria-label="Toggle sidebar"
+              className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0"
+            >
+              <MenuIcon size={16} />
+            </button>
 
             {/* Brand Logo -> Links to Main Dashboard at tungston-hazel.vercel.app */}
             <a
@@ -598,39 +560,28 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
               <span className="grid h-7 w-7 place-items-center border-2 border-line bg-accent text-line font-black text-xs sm:text-sm">
                 74
               </span>
-              <span className="hidden md:inline">TUNGSTEN</span>
+              <span className="hidden md:inline">TUNGSTON</span>
             </a>
 
-            {/* The Two Core Tools: Chat & Playground */}
+            {/* Core Foundry Tools */}
             <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Tool selection">
-              <button
-                onClick={() => handleSelectView("chat")}
-                className={`border-2 border-line px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs uppercase transition-all shadow-hard-sm ${
-                  activeView === "chat"
-                    ? "bg-accent text-line font-black"
-                    : "bg-surface2 text-ink font-bold hover:text-accent"
-                }`}
-              >
-                💬 <span className="hidden sm:inline">CHAT</span>
-              </button>
+              <span className="border-2 border-line bg-accent text-line px-2.5 sm:px-3 py-1 text-xs font-black uppercase shadow-hard-sm">
+                💬 <span className="hidden sm:inline">CHATBOT</span><span className="sm:hidden">CHAT</span>
+              </span>
 
-              <button
-                onClick={() => handleSelectView("playground")}
-                className={`border-2 border-line px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs uppercase transition-all shadow-hard-sm ${
-                  activeView === "playground"
-                    ? "bg-accent text-line font-black"
-                    : "bg-surface2 text-ink font-bold hover:text-accent"
-                }`}
+              <a
+                href="https://tungston-hazel.vercel.app/playground"
+                className="border-2 border-line bg-surface2 text-ink hover:text-accent hover:border-accent px-2.5 sm:px-3 py-1 text-xs font-bold uppercase transition-all shadow-hard-sm flex items-center gap-1"
+                title="Launch HTML App Playground on main dashboard"
               >
-                ⚡ <span className="hidden sm:inline">PLAYGROUND</span><span className="sm:hidden">APP</span>
-              </button>
+                ⚡ <span className="hidden sm:inline">PLAYGROUND</span><span className="sm:hidden">APPS</span> ↗
+              </a>
             </nav>
           </div>
 
-          {/* Right: Telemetry / Context / Auth / Theme */}
+          {/* Right: Model status / Project / Theme / Auth */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* When in chat view, show Model selector */}
-            {activeView === "chat" && user && (
+            {user ? (
               <div className="hidden lg:flex items-center border-2 border-line bg-surface font-mono text-[10px] md:text-[11px] shadow-hard-sm">
                 <span className="bg-accent px-1.5 py-0.5 font-bold uppercase text-line">
                   MEMBER
@@ -645,38 +596,27 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
                   <option value="openai/gpt-oss-20b">GPT-20B</option>
                 </select>
               </div>
-            )}
-
-            {/* When in playground view or dashboard, show 120B badge */}
-            {activeView !== "chat" && (
-              <span className="hidden md:inline border border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold text-accent uppercase">
-                GPT-120B ENGINE
+            ) : (
+              <span className="hidden xl:inline-block border border-line bg-base px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-muted">
+                GPT-20B GUEST
               </span>
             )}
 
-            <div className="hidden xl:flex items-center gap-1.5 border border-line bg-base px-2 py-0.5 text-[10px] font-bold text-ink">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-              <span>4-KEY POOL</span>
-            </div>
-
-            {/* Active Project Button (in chat view) */}
-            {activeView === "chat" && (
-              activeProject ? (
-                <button
-                  onClick={() => setProjectsModalOpen(true)}
-                  className="hidden sm:inline-block border-2 border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold uppercase text-accent hover:bg-accent hover:text-line truncate max-w-[120px] md:max-w-[160px]"
-                  title="Manage Project Context"
-                >
-                  📁 {activeProject.name}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setProjectsModalOpen(true)}
-                  className="hidden xl:inline-block border border-line bg-surface2 px-2 py-0.5 text-[10px] text-muted hover:text-ink"
-                >
-                  + Project
-                </button>
-              )
+            {activeProject ? (
+              <button
+                onClick={() => setProjectsModalOpen(true)}
+                className="hidden sm:inline-block border-2 border-line bg-surface2 px-2 py-0.5 text-[10px] font-bold uppercase text-accent hover:bg-accent hover:text-line truncate max-w-[120px] md:max-w-[160px]"
+                title="Manage Project Context"
+              >
+                📁 {activeProject.name}
+              </button>
+            ) : (
+              <button
+                onClick={() => setProjectsModalOpen(true)}
+                className="hidden xl:inline-block border border-line bg-surface2 px-2 py-0.5 text-[10px] text-muted hover:text-ink"
+              >
+                + Project
+              </button>
             )}
 
             {!user ? (
@@ -703,44 +643,29 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
               {isLightMode ? <MoonIcon size={15} /> : <SunIcon size={15} />}
             </button>
 
-            {activeView === "chat" && (
-              <div className="hidden sm:block">
-                <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
-              </div>
-            )}
+            <div className="hidden sm:block">
+              <ContextGauge used={contextUsed} max={config.contextWindowTokens} />
+            </div>
           </div>
         </header>
 
-        {/* View Router (Tungsten AI Chat | Playground) */}
-        {activeView === "playground" ? (
-          <PlaygroundView
-            session={session}
-            onOpenAuth={() => {
-              setAuthModalTab("signin");
-              setAuthModalOpen(true);
-            }}
-            initialPrompt={initialPlaygroundPrompt}
-            onPromptConsumed={() => setInitialPlaygroundPrompt(null)}
-          />
-        ) : (
-          <>
-            {/* Rate Limit Banner */}
-            {rateLimitBanner && (
-              <div className="border-b-2 border-line bg-surface2 px-4 py-2 font-mono text-xs flex items-center justify-between text-ink shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-danger">⚠️ NOTICE:</span>
-                  <span>{rateLimitBanner}</span>
-                </div>
-                <button
-                  onClick={() => setRateLimitBanner(null)}
-                  className="border border-line bg-accent px-2 py-0.5 font-bold uppercase text-line text-[10px]"
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
+        {/* Rate Limit Banner */}
+        {rateLimitBanner && (
+          <div className="border-b-2 border-line bg-surface2 px-4 py-2 font-mono text-xs flex items-center justify-between text-ink shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-danger">⚠️ NOTICE:</span>
+              <span>{rateLimitBanner}</span>
+            </div>
+            <button
+              onClick={() => setRateLimitBanner(null)}
+              className="border border-line bg-accent px-2 py-0.5 font-bold uppercase text-line text-[10px]"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
-            <div ref={scrollRef} className="flex-1 space-y-4 md:space-y-5 overflow-y-auto px-3 py-4 md:px-8 md:py-6">
+        <div ref={scrollRef} className="flex-1 space-y-4 md:space-y-5 overflow-y-auto px-3 py-4 md:px-8 md:py-6">
               {!active?.messages.length && (
                 <div className="flex min-h-full flex-col items-center justify-center p-2 sm:p-4 font-mono">
                   <div className="flex max-w-xl flex-col items-center gap-3 border-2 border-line bg-surface p-6 md:p-8 text-center shadow-hard w-full mb-6">
@@ -798,8 +723,6 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
               uploading={uploading}
               onStop={handleStop}
             />
-          </>
-        )}
       </main>
 
       {/* Supabase Auth Modal */}
@@ -850,10 +773,10 @@ function ChatAppInner({ defaultView = "chat" }: { defaultView?: "chat" | "playgr
   );
 }
 
-export default function ChatApp({ defaultView = "chat" }: { defaultView?: "chat" | "playground" }) {
+export default function ChatApp() {
   return (
     <ToastProvider>
-      <ChatAppInner defaultView={defaultView} />
+      <ChatAppInner />
     </ToastProvider>
   );
 }

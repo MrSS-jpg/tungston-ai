@@ -1,10 +1,5 @@
-import ChatApp from "@/components/ChatApp";
-
-export const metadata = {
-  title: "Playground — Tungsten AI",
-  description: "Autonomous HTML/JS Web App Synthesizer powered by GPT-120B and 4-Key Groq LPU Array.",
-};
+import { redirect } from "next/navigation";
 
 export default function PlaygroundPage() {
-  return <ChatApp defaultView="playground" />;
+  redirect("https://tungston-hazel.vercel.app/playground");
 }

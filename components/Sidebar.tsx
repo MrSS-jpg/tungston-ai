@@ -21,8 +21,6 @@ export function Sidebar({
   onClearAll,
   onOpenDeleteAccount,
   onOpenOnboarding,
-  activeView,
-  onSelectView,
 }: {
   conversations: Conversation[];
   activeId: string | null;
@@ -40,8 +38,6 @@ export function Sidebar({
   onClearAll?: () => void;
   onOpenDeleteAccount?: () => void;
   onOpenOnboarding?: () => void;
-  activeView?: "chat" | "playground";
-  onSelectView?: (view: "chat" | "playground") => void;
 }) {
   const activeConvo = conversations.find((c) => c.id === activeId);
   const hasMessages = Boolean(activeConvo && activeConvo.messages.length > 0);
@@ -115,34 +111,23 @@ export function Sidebar({
 
           {/* Primary Tool Switcher */}
           <div className="pt-1 space-y-1.5">
-            <div className="text-[9px] font-bold uppercase tracking-wider text-muted px-1">FOUNDRY TOOLS</div>
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted px-1">FOUNDRY ECOSYSTEM</div>
             <div className="grid grid-cols-2 gap-1.5">
-              <button
-                onClick={() => {
-                  if (onSelectView) onSelectView("chat");
-                  if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
-                }}
-                className={`border-2 border-line px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase transition-colors shadow-hard-sm ${
-                  activeView === "chat" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
-                }`}
-              >
+              <span className="border-2 border-line bg-accent px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase text-line shadow-hard-sm">
                 💬 CHAT
-              </button>
-              <button
-                onClick={() => {
-                  if (onSelectView) onSelectView("playground");
-                  if (typeof window !== "undefined" && window.innerWidth < 768) onClose();
-                }}
-                className={`border-2 border-line px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase transition-colors shadow-hard-sm ${
-                  activeView === "playground" ? "bg-accent text-line" : "bg-surface2 text-ink hover:text-accent"
-                }`}
+              </span>
+              <a
+                href="https://tungston-hazel.vercel.app/playground"
+                className="border-2 border-line bg-surface2 px-2 py-1.5 text-center font-mono text-[11px] font-black uppercase text-ink hover:text-accent hover:border-accent transition-colors shadow-hard-sm"
+                title="Open HTML App Playground on main dashboard"
               >
-                ⚡ PLAYGROUND
-              </button>
+                ⚡ PLAY ↗
+              </a>
             </div>
             <a
               href="https://tungston-hazel.vercel.app/"
               className="block border border-line bg-surface2 px-2 py-1 text-center font-mono text-[10px] font-bold uppercase text-muted hover:text-accent hover:border-accent transition-colors"
+              title="Return to Main Dashboard"
             >
               🏠 MAIN DASHBOARD ↗
             </a>

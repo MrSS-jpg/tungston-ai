@@ -28,72 +28,52 @@ If the user provides existing HTML with an update request, modify and enhance th
 
 const encoder = new TextEncoder();
 
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
 export async function POST(req: Request) {
   try {
-    // 1. Origin verification
-    const origin = req.headers.get("origin") || req.headers.get("referer");
-    const host = req.headers.get("host") || "";
-    if (origin && host) {
-      try {
-        const originUrl = new URL(origin);
-        if (
-          originUrl.host !== host &&
-          !originUrl.host.endsWith(".vercel.app") &&
-          !host.includes("localhost")
-        ) {
-          return new Response(JSON.stringify({ error: "Unauthorized cross-origin request." }), {
-            status: 403,
-            headers: { "Content-Type": "application/json" },
-          });
+    // 1. Auth check (with Free Test Pass support)
+    let isMember = false;
+    let userEmail = "";
+
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7).trim();
+      if (token && token !== "guest" && token !== "undefined") {
+        try {
+          const { data: { user } } = await supabase.auth.getUser(token);
+          if (user) {
+            isMember = true;
+            userEmail = user.email || "";
+          }
+        } catch {
+          // If Supabase host is unreachable or paused, continue under Free Test mode
         }
-      } catch {
-        // Continue if malformed
       }
     }
 
-    // 2. Supabase Auth Verification
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({
-          error: "Authentication required. Please sign in to Tungsten to code and run live Playground apps.",
-          requiresAuth: true,
-        }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const token = authHeader.slice(7).trim();
-    if (!token) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid authentication token.",
-          requiresAuth: true,
-        }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({
-          error: "Session expired or invalid. Please sign in again.",
-          requiresAuth: true,
-        }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // 3. Payload Parsing
+    // 2. Payload Parsing
     const body = await req.json().catch(() => null);
     if (!body || typeof body.prompt !== "string" || !body.prompt.trim()) {
       return new Response(
         JSON.stringify({ error: "Missing or invalid 'prompt' field." }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
       );
     }
 
@@ -106,40 +86,54 @@ export async function POST(req: Request) {
       { role: "system", content: PLAYGROUND_SYSTEM_PROMPT },
     ];
 
-    if (existingHtml) {
-      messages.push({
-        role: "user",
-        content: `Here is the current HTML app code:\n\n\`\`\`html\n${existingHtml}\n\`\`\``,
-      });
-      messages.push({
-        role: "assistant",
-        content: "Understood. What modification or feature would you like to add or change in this app?",
-      });
-    }
-
-    // Append prior conversational turn if refining
-    for (const h of conversationHistory.slice(-4)) {
-      if (h.role === "user" || h.role === "assistant") {
-        messages.push({ role: h.role, content: String(h.content).slice(0, 2000) });
+    // Include recent session history
+    for (const item of conversationHistory.slice(-4)) {
+      if (item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string") {
+        messages.push({
+          role: item.role,
+          content: item.content.slice(0, 4000),
+        });
       }
     }
 
-    // Add current user prompt
-    messages.push({
-      role: "user",
-      content: existingHtml
-        ? `Update the HTML application according to this request: ${userPrompt}\nRemember to output the complete <!DOCTYPE html> document without markdown fences or chat.`
-        : `Build this application from scratch: ${userPrompt}\nRemember to output the complete <!DOCTYPE html> document without markdown fences or chat.`,
-    });
+    // Append current prompt & context
+    if (existingHtml) {
+      messages.push({
+        role: "user",
+        content: `Here is the current working HTML app:\n\n${existingHtml}\n\nPlease update and enhance this app according to this request: ${userPrompt}\n\nRemember: Output ONLY the complete updated HTML document from <!DOCTYPE html> to </html>. Zero markdown, zero preamble.`,
+      });
+    } else {
+      messages.push({
+        role: "user",
+        content: `Build a complete, standalone, production-ready single-file HTML application for: ${userPrompt}\n\nRemember: Output ONLY the raw executable HTML from <!DOCTYPE html> to </html> with embedded Tailwind CSS and interactive JavaScript. Zero markdown fences, zero explanation.`,
+      });
+    }
 
-    // 4. Request stream from 4-Account Groq Key Pool
-    const { response: groqRes, keyPrefix, modelUsed } = await streamWithGroqPool(messages, {
-      model: "openai/gpt-oss-120b",
-      temperature: 0.6,
-      max_tokens: 4096,
-    });
+    // 3. Dispatch to Groq 4-Key Pool with GPT-OSS 120B
+    const { response: groqRes, modelUsed, keyPrefix } = await streamWithGroqPool(
+      messages,
+      {
+        model: "openai/gpt-oss-120b",
+        temperature: 0.4,
+        max_tokens: 8192,
+      }
+    );
 
-    // 5. Pipe Groq's SSE stream to client
+    if (!groqRes.ok) {
+      const errText = await groqRes.text().catch(() => "Unknown upstream error");
+      return new Response(
+        JSON.stringify({ error: `Groq LPU Array error: ${errText}` }),
+        {
+          status: 502,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    // 4. Pipe Groq's SSE stream to client
     const groqReader = groqRes.body!.getReader();
     const decoder = new TextDecoder();
 
@@ -191,8 +185,10 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
+        "Access-Control-Allow-Origin": "*",
         "X-Tungsten-Model": modelUsed,
         "X-Tungsten-Key-Pool": keyPrefix,
+        "X-Tungsten-Tier": isMember ? `MEMBER (${userEmail})` : "FREE_TEST_PASS",
       },
     });
   } catch (error: any) {
@@ -202,7 +198,10 @@ export async function POST(req: Request) {
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
       }
     );
   }

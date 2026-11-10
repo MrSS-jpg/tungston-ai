@@ -118,7 +118,19 @@ export function AuthModal({
         setConfirmPassword("");
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || "An authentication error occurred.");
+      const msg = err?.message || "";
+      if (
+        msg.includes("fetch failed") ||
+        msg.includes("Failed to fetch") ||
+        msg.includes("NetworkError") ||
+        msg.includes("Could not resolve host")
+      ) {
+        setErrorMsg(
+          "Auth server unreachable. If your Supabase project (vhubdozlyjqpvpqcacdv) is paused due to inactivity, please unpause it in your Supabase dashboard (supabase.com). Guest Tier is active — you can chat and test tools without logging in."
+        );
+      } else {
+        setErrorMsg(msg || "An authentication error occurred.");
+      }
     } finally {
       setLoading(false);
     }
