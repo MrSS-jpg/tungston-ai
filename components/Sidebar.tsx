@@ -55,7 +55,7 @@ export function Sidebar({
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col w-72 max-w-[85vw] border-r-2 border-line bg-surface p-4 transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
-          open ? "translate-x-0 md:w-72" : "-translate-x-full md:w-0 md:border-r-0 md:p-0"
+          open ? "translate-x-0 md:w-72" : "-translate-x-full pointer-events-none md:pointer-events-auto md:w-0 md:border-r-0 md:p-0"
         } shrink-0 overflow-hidden shadow-hard md:shadow-none`}
       >
         {/* Brand & Close */}

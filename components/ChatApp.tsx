@@ -498,7 +498,7 @@ function ChatAppInner() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-base text-ink relative font-mono">
+    <div className="flex h-screen h-[100dvh] w-full max-w-full overflow-hidden bg-base text-ink relative font-mono">
       <Sidebar
         conversations={conversations}
         activeId={activeId}
@@ -521,7 +521,7 @@ function ChatAppInner() {
         onOpenOnboarding={() => setOnboardingModalOpen(true)}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden max-w-full relative h-full">
         {/* Unconfirmed Email Notice Banner */}
         {user && !user.email_confirmed_at && (
           <div className="border-b-2 border-line bg-[#FFA85C]/20 px-3 py-2 flex items-center justify-between text-xs font-mono text-ink shrink-0">
@@ -540,13 +540,13 @@ function ChatAppInner() {
         )}
 
         {/* Flagship Header */}
-        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-2.5 py-2 sm:px-4 md:px-6 font-mono shrink-0 shadow-hard-sm">
+        <header className="flex items-center justify-between border-b-2 border-line bg-surface px-2.5 py-1.5 sm:px-4 md:px-6 font-mono shrink-0 shadow-hard-sm w-full max-w-full">
           {/* Left: Sidebar toggle + Brand + Foundry Links */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
               aria-label="Toggle sidebar"
-              className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0"
+              className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0 active:translate-x-[1px] active:translate-y-[1px]"
             >
               <MenuIcon size={16} />
             </button>
@@ -554,24 +554,20 @@ function ChatAppInner() {
             {/* Brand Logo -> Links to Main Dashboard at tungston-hazel.vercel.app */}
             <a
               href="https://tungston-hazel.vercel.app/"
-              className="flex items-center gap-1.5 sm:gap-2 font-display text-sm sm:text-base uppercase tracking-tight hover:text-accent transition-colors shrink-0"
+              className="flex items-center gap-1.5 sm:gap-2 font-display text-xs sm:text-base uppercase tracking-tight hover:text-accent transition-colors shrink-0"
               title="Return to Main Dashboard (tungston-hazel.vercel.app)"
             >
               <span className="grid h-7 w-7 place-items-center border-2 border-line bg-accent text-line font-black text-xs sm:text-sm">
                 74
               </span>
-              <span className="hidden md:inline">TUNGSTON</span>
+              <span className="hidden xs:inline">TUNGSTON</span>
             </a>
 
             {/* Core Foundry Tools */}
             <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Tool selection">
-              <span className="border-2 border-line bg-accent text-line px-2.5 sm:px-3 py-1 text-xs font-black uppercase shadow-hard-sm">
-                💬 <span className="hidden sm:inline">CHATBOT</span><span className="sm:hidden">CHAT</span>
-              </span>
-
               <a
                 href="https://tungston-hazel.vercel.app/playground"
-                className="border-2 border-line bg-surface2 text-ink hover:text-accent hover:border-accent px-2.5 sm:px-3 py-1 text-xs font-bold uppercase transition-all shadow-hard-sm flex items-center gap-1"
+                className="border-2 border-line bg-surface2 text-ink hover:text-accent hover:border-accent px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-bold uppercase transition-all shadow-hard-sm flex items-center gap-1"
                 title="Launch HTML App Playground on main dashboard"
               >
                 ⚡ <span className="hidden sm:inline">PLAYGROUND</span><span className="sm:hidden">APPS</span> ↗
@@ -580,7 +576,7 @@ function ChatAppInner() {
           </div>
 
           {/* Right: Model status / Project / Theme / Auth */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {user ? (
               <div className="hidden lg:flex items-center border-2 border-line bg-surface font-mono text-[10px] md:text-[11px] shadow-hard-sm">
                 <span className="bg-accent px-1.5 py-0.5 font-bold uppercase text-line">
@@ -610,14 +606,7 @@ function ChatAppInner() {
               >
                 📁 {activeProject.name}
               </button>
-            ) : (
-              <button
-                onClick={() => setProjectsModalOpen(true)}
-                className="hidden xl:inline-block border border-line bg-surface2 px-2 py-0.5 text-[10px] text-muted hover:text-ink"
-              >
-                + Project
-              </button>
-            )}
+            ) : null}
 
             {!user ? (
               <button
@@ -638,7 +627,7 @@ function ChatAppInner() {
             <button
               onClick={() => setIsLightMode(!isLightMode)}
               aria-label="Toggle theme"
-              className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0"
+              className="grid h-8 w-8 place-items-center border-2 border-line bg-surface2 text-ink hover:bg-accent hover:text-line transition-colors shrink-0 active:translate-x-[1px] active:translate-y-[1px]"
             >
               {isLightMode ? <MoonIcon size={15} /> : <SunIcon size={15} />}
             </button>
@@ -651,7 +640,7 @@ function ChatAppInner() {
 
         {/* Rate Limit Banner */}
         {rateLimitBanner && (
-          <div className="border-b-2 border-line bg-surface2 px-4 py-2 font-mono text-xs flex items-center justify-between text-ink shrink-0">
+          <div className="border-b-2 border-line bg-surface2 px-3 sm:px-4 py-2 font-mono text-xs flex items-center justify-between text-ink shrink-0">
             <div className="flex items-center gap-2">
               <span className="font-bold text-danger">⚠️ NOTICE:</span>
               <span>{rateLimitBanner}</span>
@@ -665,7 +654,10 @@ function ChatAppInner() {
           </div>
         )}
 
-        <div ref={scrollRef} className="flex-1 space-y-4 md:space-y-5 overflow-y-auto px-3 py-4 md:px-8 md:py-6">
+        <div
+          ref={scrollRef}
+          className="flex-1 space-y-3.5 sm:space-y-4 md:space-y-5 overflow-y-auto overflow-x-hidden px-2.5 py-3 sm:px-4 sm:py-4 md:px-8 md:py-6 w-full max-w-full"
+        >
               {!active?.messages.length && (
                 <div className="flex min-h-full flex-col items-center justify-center p-2 sm:p-4 font-mono">
                   <div className="flex max-w-xl flex-col items-center gap-3 border-2 border-line bg-surface p-6 md:p-8 text-center shadow-hard w-full mb-6">
