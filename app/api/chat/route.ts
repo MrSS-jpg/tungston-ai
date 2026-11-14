@@ -14,6 +14,18 @@ const SYSTEM_PROMPT =
   "Answer clearly and directly with zero fluff. Use markdown for structure only when it aids readability. " +
   "Keep replies concise unless technical depth or code is requested.";
 
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-byok-key, x-byok-provider",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const ip = getClientIp(req);
@@ -165,6 +177,7 @@ export async function POST(req: Request) {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
         "X-User-Tier": userTier,
+        "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (err: any) {
@@ -177,13 +190,13 @@ export async function POST(req: Request) {
         }),
         {
           status: 429,
-          headers: { "Content-Type": "application/json", "Retry-After": "10" },
+          headers: { "Content-Type": "application/json", "Retry-After": "10", "Access-Control-Allow-Origin": "*" },
         }
       );
     }
     return new Response(JSON.stringify({ error: msg }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
   }
 }
