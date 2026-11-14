@@ -36,10 +36,15 @@ export async function POST(req: Request) {
     if (origin && host) {
       try {
         const originUrl = new URL(origin);
-        if (originUrl.host !== host && !originUrl.host.endsWith(".vercel.app") && !host.includes("localhost")) {
+        if (
+          originUrl.host !== host &&
+          !originUrl.host.endsWith(".vercel.app") &&
+          !originUrl.host.includes("localhost") &&
+          !originUrl.host.includes("127.0.0.1")
+        ) {
           return new Response(JSON.stringify({ error: "Unauthorized cross-origin request." }), {
             status: 403,
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
           });
         }
       } catch {
@@ -75,7 +80,7 @@ export async function POST(req: Request) {
       if (byokKey.length < 10 || byokKey.length > 256) {
         return new Response(JSON.stringify({ error: "Invalid BYOK API key format." }), {
           status: 400,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         });
       }
     }
@@ -102,6 +107,7 @@ export async function POST(req: Request) {
             status: 429,
             headers: {
               "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
               "X-RateLimit-Limit": String(limit.limit),
               "X-RateLimit-Remaining": String(limit.remaining),
               "X-RateLimit-Reset": String(limit.reset),
@@ -117,7 +123,7 @@ export async function POST(req: Request) {
     if (rawBody.length > MAX_TOTAL_BODY_BYTES) {
       return new Response(JSON.stringify({ error: "Payload too large (max 64KB)." }), {
         status: 413,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
 
@@ -127,7 +133,7 @@ export async function POST(req: Request) {
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON format." }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
 
@@ -135,7 +141,7 @@ export async function POST(req: Request) {
     if (!messages.length) {
       return new Response(JSON.stringify({ error: "No messages provided." }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
 
