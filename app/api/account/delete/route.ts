@@ -3,13 +3,24 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "edge";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized: Missing authentication credentials." },
-        { status: 401 }
+        { status: 401, headers: CORS_HEADERS }
       );
     }
 
@@ -33,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (userError || !user) {
       return NextResponse.json(
         { error: "Unauthorized: Invalid session token." },
-        { status: 401 }
+        { status: 401, headers: CORS_HEADERS }
       );
     }
 
@@ -46,14 +57,17 @@ export async function POST(req: NextRequest) {
       await adminClient.auth.admin.deleteUser(userId);
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Account for user ${user.email} and associated data cascade deleted.`,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: `Account for user ${user.email} and associated data cascade deleted.`,
+      },
+      { headers: CORS_HEADERS }
+    );
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message || "Failed to delete account" },
-      { status: 500 }
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }

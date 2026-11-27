@@ -9,7 +9,7 @@ export async function OPTIONS() {
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-byok-key",
       "Access-Control-Max-Age": "86400",
     },
   });
@@ -18,8 +18,9 @@ export async function OPTIONS() {
 export async function POST(req: Request) {
   try {
     const ip = getClientIp(req);
+    const byokKey = req.headers.get("x-byok-key")?.trim() || undefined;
     const limit = await checkImageLimit(ip);
-    if (!limit.allowed) {
+    if (!limit.allowed && !byokKey) {
       return Response.json(
         { error: `You've hit the hourly image limit (${limit.limit}/hr) for this app. Try again after it resets.` },
         { status: 429, headers: { "Access-Control-Allow-Origin": "*" } }
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
         { status: 400, headers: { "Access-Control-Allow-Origin": "*" } }
       );
     }
-    const images = await generateImage(prompt);
+    const images = await generateImage(prompt, byokKey);
     return Response.json({ images }, { headers: { "Access-Control-Allow-Origin": "*" } });
   } catch (err) {
     return Response.json(

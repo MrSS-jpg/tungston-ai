@@ -18,13 +18,18 @@ let globalIndex = 0;
  * Retrieves all unique non-empty Groq keys from environment variables.
  */
 export function getGroqKeys(): string[] {
-  const rawKeys = [
-    process.env.GROQ_API_KEY_1,
-    process.env.GROQ_API_KEY_2,
-    process.env.GROQ_API_KEY_3,
-    process.env.GROQ_API_KEY_4,
-    process.env.GROQ_API_KEY,
-  ];
+  const rawKeys: Array<string | undefined> = [];
+
+  if (process.env.GROQ_API_KEYS) {
+    for (const part of process.env.GROQ_API_KEYS.split(/[\s,;]+/)) {
+      rawKeys.push(part);
+    }
+  }
+
+  for (let i = 1; i <= 20; i++) {
+    rawKeys.push(process.env[`GROQ_API_KEY_${i}`]);
+  }
+  rawKeys.push(process.env.GROQ_API_KEY);
 
   const unique = Array.from(
     new Set(

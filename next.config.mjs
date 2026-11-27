@@ -5,7 +5,7 @@ const ContentSecurityPolicy = `
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src 'self' https://fonts.gstatic.com data:;
   img-src 'self' data: blob: https:;
-  connect-src 'self' https://api.groq.com https://router.bynara.id https://openrouter.ai https://api.cerebras.ai https://api.mistral.ai https://*.supabase.co https://*.upstash.io https://vitals.vercel-insights.com;
+  connect-src 'self' https://api.groq.com https://api.tavily.com https://generativelanguage.googleapis.com https://router.bynara.id https://openrouter.ai https://api.cerebras.ai https://api.mistral.ai https://tungston-hazel.vercel.app https://*.supabase.co https://*.upstash.io https://vitals.vercel-insights.com;
   frame-ancestors 'none';
   form-action 'self';
   upgrade-insecure-requests;

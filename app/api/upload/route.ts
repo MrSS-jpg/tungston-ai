@@ -1,6 +1,13 @@
 export const runtime = "edge";
 
-const MAX_INLINE_BYTES = 10 * 1024 * 1024; // 10MB cap for edge uploads
+const MAX_INLINE_BYTES = 10 * 1024 * 1024;
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Max-Age": "86400",
+};
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = "";
@@ -14,60 +21,56 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function POST(req: Request) {
   try {
-    // Security: Validate origin if present
-    const origin = req.headers.get("origin") || req.headers.get("referer");
-    const host = req.headers.get("host") || "";
-    if (origin && host) {
-      try {
-        const originUrl = new URL(origin);
-        if (originUrl.host !== host && !originUrl.host.endsWith(".vercel.app") && !host.includes("localhost")) {
-          return new Response(JSON.stringify({ error: "Unauthorized upload request." }), {
-            status: 403,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-      } catch {
-        // continue
-      }
-    }
-
     const form = await req.formData();
-    const file = form.get("file");
-    if (!(file instanceof File)) {
-      return Response.json({ error: "No file provided." }, { status: 400 });
-    }
-    if (file.size > MAX_INLINE_BYTES * 2) {
-      return Response.json({ error: "File is too large (20MB limit)." }, { status: 413 });
-    }
+    const rawFiles = form.getAll("files");
+    const singleFile = form.get("file");
+    const files = rawFiles.length ? rawFiles : singleFile ? [singleFile] : [];
 
-    // Cap text and markdown files to 40KB to avoid blowing out Groq tokens
-    const isText = file.type.startsWith("text/") || file.name.endsWith(".md") || file.name.endsWith(".txt");
-    if (isText && file.size > 40 * 1024) {
-      return Response.json(
-        {
-          error: `File "${file.name}" (${(file.size / 1024).toFixed(1)} KB) exceeds the 40 KB limit. Text files are capped to protect API token limits.`,
-        },
-        { status: 413 }
-      );
+    const validFiles = files.filter((f): f is File => f instanceof File);
+    if (!validFiles.length) {
+      return Response.json({ error: "No file provided." }, { status: 400, headers: CORS_HEADERS });
     }
 
-    if (file.size > MAX_INLINE_BYTES) {
-      return Response.json({ error: "File too large to send inline for this provider." }, { status: 413 });
+    const attachments = [];
+    for (const file of validFiles.slice(0, 5)) {
+      if (file.size > MAX_INLINE_BYTES) {
+        return Response.json(
+          { error: `File "${file.name}" exceeds the 10MB upload limit.` },
+          { status: 413, headers: CORS_HEADERS }
+        );
+      }
+
+      const isText = file.type.startsWith("text/") || /\.(md|txt|json|csv|js|ts|tsx|py|html|css)$/i.test(file.name);
+      if (isText && file.size > 48 * 1024) {
+        return Response.json(
+          {
+            error: `Text file "${file.name}" (${(file.size / 1024).toFixed(1)} KB) exceeds the 48 KB token safety cap.`,
+          },
+          { status: 413, headers: CORS_HEADERS }
+        );
+      }
+
+      const arrayBuf = await file.arrayBuffer();
+      const base64Str = arrayBufferToBase64(arrayBuf);
+      const dataUrl = `data:${file.type || "text/plain"};base64,${base64Str}`;
+
+      attachments.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: file.name,
+        mimeType: file.type || "text/plain",
+        dataUrl,
+        sizeBytes: file.size,
+      });
     }
 
-    const arrayBuf = await file.arrayBuffer();
-    const base64Str = arrayBufferToBase64(arrayBuf);
-    const dataUrl = `data:${file.type || "application/octet-stream"};base64,${base64Str}`;
-
-    return Response.json({
-      name: file.name,
-      mimeType: file.type,
-      dataUrl,
-      sizeBytes: file.size,
-    });
+    return Response.json({ attachments, ...attachments[0] }, { headers: CORS_HEADERS });
   } catch (err) {
-    return Response.json({ error: (err as Error).message }, { status: 500 });
+    return Response.json({ error: (err as Error).message }, { status: 500, headers: CORS_HEADERS });
   }
 }

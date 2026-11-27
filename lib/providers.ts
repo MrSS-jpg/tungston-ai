@@ -1,9 +1,5 @@
 import { getPrioritizedKeys, markKeyThrottled } from "./groqPool";
 
-// Every provider below is reached through the same two functions —
-// streamCompletion() and generateImage() — so swapping the backend the
-// app runs on is a one-line env var change (AI_PROVIDER), not a rewrite.
-
 export type WireMessage = {
   role: "user" | "assistant" | "system";
   content: string;
@@ -35,7 +31,6 @@ function textStream(pull: (controller: ReadableStreamDefaultController<Uint8Arra
   });
 }
 
-// Minimal SSE parser
 async function pipeSSE(
   body: ReadableStream<Uint8Array>,
   controller: ReadableStreamDefaultController<Uint8Array>,
@@ -58,14 +53,12 @@ async function pipeSSE(
         const data = JSON.parse(line.slice(6));
         const delta = parseDelta(data);
         if (delta) controller.enqueue(encoder.encode(delta));
-      } catch (e) {
-        // ignore parse error for chunk
+      } catch {
+        // ignore malformed partial SSE chunk
       }
     }
   }
 }
-
-// ---------- Any OpenAI-compatible provider (Groq, Nara, OpenRouter, Cerebras, Mistral) ----------
 
 function toOpenAIMessages(messages: WireMessage[]) {
   return messages.map((m) => {
@@ -93,7 +86,7 @@ async function streamOpenAICompatible(
     fallbackModels?: string[];
   }
 ) {
-  const candidateKeys = cfg.apiKeys && cfg.apiKeys.length > 0 ? cfg.apiKeys : (cfg.apiKey ? [cfg.apiKey] : []);
+  const candidateKeys = cfg.apiKeys && cfg.apiKeys.length > 0 ? cfg.apiKeys : cfg.apiKey ? [cfg.apiKey] : [];
   if (!candidateKeys.length) throw new Error(`${PROVIDER.toUpperCase()}_API_KEY is not set`);
   const wire = system ? [{ role: "system" as const, content: system }, ...messages] : messages;
 
@@ -122,41 +115,42 @@ async function streamOpenAICompatible(
         const errText = await res.text();
         lastErr = `${PROVIDER} error ${res.status}: ${errText}`;
 
-        // Catch model 404 or 400 decommissioned/unavailable errors and seamlessly try next model
         const isModelError =
           res.status === 404 ||
-          (res.status === 400 && (
-            errText.includes("model_decommissioned") ||
-            errText.includes("decommissioned") ||
-            errText.includes("model_not_found") ||
-            errText.includes("does not exist") ||
-            errText.includes("not found") ||
-            errText.includes("no longer supported") ||
-            (errText.includes("model") && (errText.includes("access") || errText.includes("unknown") || errText.includes("invalid")))
-          ));
+          (res.status === 400 &&
+            (errText.includes("model_decommissioned") ||
+              errText.includes("decommissioned") ||
+              errText.includes("model_not_found") ||
+              errText.includes("does not exist") ||
+              errText.includes("not found") ||
+              errText.includes("no longer supported") ||
+              (errText.includes("model") &&
+                (errText.includes("access") || errText.includes("unknown") || errText.includes("invalid")))));
 
         if (isModelError) {
-          break; // break key loop to try next candidate model
+          break;
         }
 
         if (res.status === 429) {
           markKeyThrottled(keyToTry, 60_000);
-          continue; // try next key in pool
+          continue;
         }
 
         if (res.status === 401) {
           markKeyThrottled(keyToTry, 3_600_000);
-          continue; // try next key in pool
+          continue;
         }
 
         throw new Error(lastErr);
       } catch (e: any) {
-        if (e.message && (
-          e.message.includes("404") ||
-          e.message.includes("decommissioned") ||
-          e.message.includes("not exist") ||
-          e.message.includes("model_not_found")
-        )) break;
+        if (
+          e.message &&
+          (e.message.includes("404") ||
+            e.message.includes("decommissioned") ||
+            e.message.includes("not exist") ||
+            e.message.includes("model_not_found"))
+        )
+          break;
         continue;
       }
     }
@@ -172,25 +166,89 @@ async function streamOpenAICompatible(
   );
 }
 
-// ---------- Public entry points ----------
+// ---------- Model Normalization (Live Active Groq Catalog) ----------
 
-const DECOMMISSIONED_GROQ_MODELS = new Set([
-  "llama-3.1-8b-instant",
-  "llama3-8b-8192",
-  "llama3-70b-8192",
-  "llama-3.3-70b-versatile",
-  "gemma2-9b-it",
-  "gemma-7b-it",
-  "llama-3.2-1b-preview",
-  "llama-3.2-3b-preview",
-  "llama-3.2-11b-vision-preview",
-  "llama-3.2-90b-vision-preview",
-  "mixtral-8x7b-32768",
-]);
+const MODEL_ALIASES: Record<string, string> = {
+  "qwen-2.5-72b": "qwen/qwen3.8-27b",
+  "qwen-27b": "qwen/qwen3.8-27b",
+  "qwen/qwen3.8-27b": "qwen/qwen3.8-27b",
+  "llama-3.3-70b": "openai/gpt-oss-120b",
+  "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+  "gpt-120b": "openai/gpt-oss-120b",
+  "openai/gpt-oss-120b": "openai/gpt-oss-120b",
+  "gpt-20b": "openai/gpt-oss-20b",
+  "openai/gpt-oss-20b": "openai/gpt-oss-20b",
+};
 
-function sanitizeGroqModel(model: string | undefined, defaultModel: string): string {
-  if (!model || DECOMMISSIONED_GROQ_MODELS.has(model)) return defaultModel;
-  return model;
+const ACTIVE_GROQ_MODELS = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b", "openai/gpt-oss-120b"];
+
+export function resolveGroqModel(requested?: string, fallback = "qwen/qwen3.8-27b"): string {
+  if (!requested) return fallback;
+  const trimmed = requested.trim();
+  if (MODEL_ALIASES[trimmed]) return MODEL_ALIASES[trimmed];
+  if (ACTIVE_GROQ_MODELS.includes(trimmed)) return trimmed;
+  return fallback;
+}
+
+/**
+ * Uses ultra-fast Groq 20B to rewrite a conversational prompt into a sharp web search query.
+ * Falls back immediately to a sanitized direct prompt on timeout or missing key.
+ */
+export async function formulateSearchQuery(
+  userPrompt: string,
+  history: WireMessage[] = [],
+  byokApiKey?: string
+): Promise<string> {
+  const cleanDirect = userPrompt.replace(/^\/search\s+/i, "").trim().slice(0, 280);
+  if (cleanDirect.length <= 4) return cleanDirect;
+
+  const keys = byokApiKey ? [byokApiKey] : getPrioritizedKeys();
+  if (!keys.length) return cleanDirect;
+
+  const recentUserCtx = history
+    .filter((m) => m.role === "user")
+    .slice(-3, -1)
+    .map((m) => m.content.slice(0, 120))
+    .join(" | ");
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${keys[0]}`,
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-20b",
+        temperature: 0.1,
+        max_tokens: 64,
+        messages: [
+          {
+            role: "system",
+            content:
+              `Convert the user prompt into a concise web search engine query (3 to 9 words, no quotes, no explanation). Current date: ${today}. ` +
+              (recentUserCtx ? `Prior topic context: ${recentUserCtx}` : ""),
+          },
+          { role: "user", content: cleanDirect },
+        ],
+      }),
+      signal: AbortSignal.timeout(2500),
+    });
+
+    if (res.ok) {
+      const json: any = await res.json();
+      const refined = json?.choices?.[0]?.message?.content?.trim().replace(/^["']|["']$/g, "");
+      if (refined && refined.length >= 3 && refined.length <= 200) {
+        return refined;
+      }
+    }
+  } catch {
+    // Silent fallback to direct clean prompt
+  }
+
+  return cleanDirect;
 }
 
 export async function streamCompletion(
@@ -202,14 +260,13 @@ export async function streamCompletion(
   const byokKey = options?.byokApiKey?.trim();
   const byokProvider = (options?.byokProvider || "groq").toLowerCase();
 
-  // Route to user's personal BYOK key if provided
   if (byokKey) {
     if (byokProvider === "openrouter") {
       return streamOpenAICompatible(messages, system, {
         baseUrl: "https://openrouter.ai/api/v1/chat/completions",
         apiKey: byokKey,
         model: options?.modelOverride || "meta-llama/llama-3.1-8b-instruct:free",
-        extraHeaders: { "HTTP-Referer": "https://tungston-ai.vercel.app", "X-Title": "Tungston AI" },
+        extraHeaders: { "HTTP-Referer": "https://tungston-hazel.vercel.app", "X-Title": "Tungston AI" },
       });
     }
     if (byokProvider === "cerebras") {
@@ -219,44 +276,20 @@ export async function streamCompletion(
         model: options?.modelOverride || "llama-3.3-70b",
       });
     }
-    // Groq BYOK
-    const chosenModel = options?.modelOverride || (isAuth ? "qwen/qwen3.8-27b" : "openai/gpt-oss-20b");
+    const chosenModel = resolveGroqModel(options?.modelOverride, isAuth ? "qwen/qwen3.8-27b" : "openai/gpt-oss-20b");
     return streamOpenAICompatible(messages, system, {
       baseUrl: "https://api.groq.com/openai/v1/chat/completions",
       apiKey: byokKey,
       model: chosenModel,
-      fallbackModels: ["openai/gpt-oss-20b", "qwen/qwen3.8-27b", "openai/gpt-oss-120b"].filter((m) => m !== chosenModel),
+      fallbackModels: ACTIVE_GROQ_MODELS.filter((m) => m !== chosenModel),
     });
   }
 
   switch (PROVIDER) {
     case "groq": {
-      // Production-ready active Groq models:
-      // Guest: openai/gpt-oss-20b (Ultra-fast 20B MoE, 131k context window)
-      // Authenticated: qwen/qwen3.8-27b (Frontier multimodal 27B, 131k context window)
-      // Fallbacks: openai/gpt-oss-120b, openai/gpt-oss-20b, qwen/qwen3.8-27b
-      const guestFallbacks = [
-        "openai/gpt-oss-20b",
-        "qwen/qwen3.8-27b",
-        "openai/gpt-oss-120b",
-      ];
-      const authFallbacks = [
-        "qwen/qwen3.8-27b",
-        "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b",
-      ];
-
-      const rawGuest = process.env.GROQ_GUEST_MODEL || process.env.GROQ_MODEL;
-      const rawAuth = process.env.GROQ_AUTH_MODEL;
-
-      const primaryGuest = sanitizeGroqModel(rawGuest, "openai/gpt-oss-20b");
-      const primaryAuth = sanitizeGroqModel(rawAuth, "qwen/qwen3.8-27b");
-
-      // Guests are locked to guest tier; authenticated members can use custom modelOverride
-      const chosenModel = isAuth
-        ? (options?.modelOverride ? sanitizeGroqModel(options.modelOverride, primaryAuth) : primaryAuth)
-        : primaryGuest;
-      const fallbacks = (isAuth ? authFallbacks : guestFallbacks).filter((m) => m !== chosenModel);
+      const defaultPrimary = isAuth ? "qwen/qwen3.8-27b" : "openai/gpt-oss-20b";
+      const chosenModel = resolveGroqModel(options?.modelOverride, defaultPrimary);
+      const fallbacks = ACTIVE_GROQ_MODELS.filter((m) => m !== chosenModel);
       const groqKeys = getPrioritizedKeys();
 
       return streamOpenAICompatible(messages, system, {
@@ -277,10 +310,8 @@ export async function streamCompletion(
       return streamOpenAICompatible(messages, system, {
         baseUrl: "https://openrouter.ai/api/v1/chat/completions",
         apiKey: process.env.OPENROUTER_API_KEY,
-        model: isAuth
-          ? (options?.modelOverride || process.env.OPENROUTER_AUTH_MODEL || "openai/gpt-oss-20b")
-          : (process.env.OPENROUTER_GUEST_MODEL || "meta-llama/llama-3.1-8b-instruct:free"),
-        extraHeaders: { "HTTP-Referer": process.env.APP_URL || "https://tungston.ai", "X-Title": "Tungston AI" },
+        model: options?.modelOverride || process.env.OPENROUTER_AUTH_MODEL || "openai/gpt-oss-20b",
+        extraHeaders: { "HTTP-Referer": process.env.APP_URL || "https://tungston-hazel.vercel.app", "X-Title": "Tungston AI" },
       });
     case "cerebras":
       return streamOpenAICompatible(messages, system, {
@@ -295,12 +326,98 @@ export async function streamCompletion(
         model: process.env.MISTRAL_MODEL || "mistral-large-latest",
       });
     default:
-      throw new Error(`Unknown AI_PROVIDER "${PROVIDER}". Use groq, nara, openrouter, cerebras, or mistral.`);
+      throw new Error(`Unknown AI_PROVIDER "${PROVIDER}".`);
   }
 }
 
-export async function generateImage(prompt: string): Promise<string[]> {
-  throw new Error("Image generation is not supported natively by the current provider setup.");
+/**
+ * Generates visual artwork via upstream image APIs if configured, falling back to
+ * Groq-rendered industrial SVG concept plates so image synthesis always delivers output.
+ */
+export async function generateImage(prompt: string, byokKey?: string): Promise<string[]> {
+  const cleanPrompt = prompt.trim().slice(0, 800);
+
+  // 1. Optional Gemini Imagen/Image key if provided & has active quota
+  const geminiKey = byokKey?.startsWith("AIza") ? byokKey : process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `Generate image: ${cleanPrompt}` }] }],
+            generationConfig: { responseModalities: ["IMAGE"] },
+          }),
+          signal: AbortSignal.timeout(12000),
+        }
+      );
+      if (res.ok) {
+        const json: any = await res.json();
+        const parts: any[] = json?.candidates?.[0]?.content?.parts || [];
+        const imgs = parts
+          .filter((p) => p?.inlineData?.data)
+          .map((p) => `data:${p.inlineData.mimeType || "image/png"};base64,${p.inlineData.data}`);
+        if (imgs.length) return imgs;
+      }
+    } catch {
+      // Fall through cleanly to Groq SVG Concept Forge
+    }
+  }
+
+  // 2. Groq Element-74 Vector Schematic / Poster Synthesis
+  const groqKeys = getPrioritizedKeys();
+  if (!groqKeys.length) {
+    throw new Error("No active image generation or Groq key configured.");
+  }
+
+  const svgPrompt =
+    `Create an intricate, museum-grade Swiss Brutalist / Industrial schematic SVG illustration representing: "${cleanPrompt}".\n` +
+    `REQUIREMENTS:\n` +
+    `- Output ONLY valid raw <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">...</svg> code. Zero markdown fences or explanation.\n` +
+    `- Aesthetic: High-contrast obsidian black (#0B0C0D), concrete beige (#EEEEE6), filament amber (#FFB800), precision blueprint grids, geometric primitives, crisp technical typography/labels, subtle glow filters, and architectural linework.\n` +
+    `- Must include rich visual composition filling the 800x600 canvas.`;
+
+  for (const key of groqKeys.slice(0, 3)) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-oss-120b",
+          temperature: 0.5,
+          max_tokens: 3000,
+          messages: [
+            { role: "system", content: "You output pure valid standalone SVG markup starting with <svg and ending with </svg>. Zero prose." },
+            { role: "user", content: svgPrompt },
+          ],
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (res.ok) {
+        const json: any = await res.json();
+        let raw = String(json?.choices?.[0]?.message?.content || "").trim();
+        const startIdx = raw.indexOf("<svg");
+        const endIdx = raw.lastIndexOf("</svg>");
+        if (startIdx !== -1 && endIdx !== -1) {
+          raw = raw.slice(startIdx, endIdx + 6);
+          const bytes = new TextEncoder().encode(raw);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          return [`data:image/svg+xml;base64,${btoa(binary)}`];
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error("Image forge engines are temporarily busy. Please try again.");
 }
 
 export const supportsNativeFiles = false;
